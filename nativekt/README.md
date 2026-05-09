@@ -139,9 +139,12 @@ takes effect on coroutine resumption.
 
 ## Supported devices
 
-- **API 31+** (Android 12 and up)
+- **API 26+** (Android 8.0 Oreo and up)
 - **arm64-v8a** only
-- Confirmed on AOSP-derived Android 12-16 ROMs (Pixel, Samsung One UI).
+- Confirmed on AOSP-derived Android 12-16 ROMs (Pixel, Samsung One UI);
+  earlier API levels (26-30) exercise the same engine path with the
+  hidden-API bypass falling through to a no-op (reflection isn't gated
+  until API 28).
 
 The hidden-API bypass falls through gracefully on devices where one
 technique fails; `Slim.lastError` reports the failure if `initialize`

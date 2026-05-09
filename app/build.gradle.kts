@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.slim"
-        minSdk = 31
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
