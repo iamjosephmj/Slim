@@ -201,7 +201,9 @@ object Arm64Decoder {
         val rdName = if (rd == 31) zrName else "$reg$rd"
         val rnName = if (rn == 31) zrName else "$reg$rn"
 
-        val imm = decodeBitmaskImm(n, immr, imms)
+        val immRaw = decodeBitmaskImm(n, immr, imms)
+        // For 32-bit instructions the logical mask only spans the lower 32 bits.
+        val imm = if (sf == 0) immRaw and 0xFFFFFFFFL else immRaw
         val immOp = Operand.Imm(imm, ImmFormat.HEX)
 
         // tst alias: ands xzr, Rn, #imm  (opc=11, rd=31)

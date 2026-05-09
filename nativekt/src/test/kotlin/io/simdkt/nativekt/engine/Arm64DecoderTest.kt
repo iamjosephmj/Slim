@@ -193,6 +193,72 @@ class Arm64DecoderTest {
         )
     }
 
+    // Paired assertDec for every assertEnc in Arm64Test.kt:bitmaskImm()
+    @Test fun bitmaskImm() {
+        // and x0, x1, #0xff  — Arm64Test.kt:bitmaskImm line 236
+        assertDec(
+            0x92401c20.toInt(),
+            DecodedInsn(
+                "and",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(0xFFL, ImmFormat.HEX)),
+                0x92401c20.toInt(),
+            ),
+        )
+        // and x0, x1, #0xffff  — Arm64Test.kt:bitmaskImm line 237
+        assertDec(
+            0x92403c20.toInt(),
+            DecodedInsn(
+                "and",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(0xFFFFL, ImmFormat.HEX)),
+                0x92403c20.toInt(),
+            ),
+        )
+        // and w0, w1, #0xff  — Arm64Test.kt:bitmaskImm line 238
+        assertDec(
+            0x12001c20.toInt(),
+            DecodedInsn(
+                "and",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1"), Operand.Imm(0xFFL, ImmFormat.HEX)),
+                0x12001c20.toInt(),
+            ),
+        )
+        // orr x0, x1, #0xf0f0f0f0f0f0f0f0  — Arm64Test.kt:bitmaskImm line 239-241
+        assertDec(
+            0xb204cc20.toInt(),
+            DecodedInsn(
+                "orr",
+                listOf(
+                    Operand.Reg("x0"),
+                    Operand.Reg("x1"),
+                    Operand.Imm(0xf0f0f0f0f0f0f0f0UL.toLong(), ImmFormat.HEX),
+                ),
+                0xb204cc20.toInt(),
+            ),
+        )
+        // eor x0, x1, #0x5555555555555555  — Arm64Test.kt:bitmaskImm line 242-244
+        assertDec(
+            0xd200f020.toInt(),
+            DecodedInsn(
+                "eor",
+                listOf(
+                    Operand.Reg("x0"),
+                    Operand.Reg("x1"),
+                    Operand.Imm(0x5555555555555555L, ImmFormat.HEX),
+                ),
+                0xd200f020.toInt(),
+            ),
+        )
+        // tst x0, #0xff  — Arm64Test.kt:bitmaskImm line 245
+        assertDec(
+            0xf2401c1f.toInt(),
+            DecodedInsn(
+                "tst",
+                listOf(Operand.Reg("x0"), Operand.Imm(0xFFL, ImmFormat.HEX)),
+                0xf2401c1f.toInt(),
+            ),
+        )
+    }
+
     @Test fun shifts() {
         // lsl x0, x1, #8  — Arm64Test.kt:shifts line 109
         assertDec(
