@@ -427,8 +427,3 @@ documentation. The ARM64 instruction encoder cross-checks against
 LLVM's `AArch64InstPrinter` golden bytes via `clang+llvm-objdump`.
 
 ---
-
-## Authors
-
-Built by [@iamjosephmj](https://github.com/iamjosephmj) with
-[Claude Code](https://claude.com/claude-code).
