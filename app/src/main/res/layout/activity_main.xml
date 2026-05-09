@@ -5,24 +5,13 @@
     android:layout_height="match_parent"
     android:background="#0d0f12">
 
-    <!-- Full-screen camera area (drawn under system bars) -->
-    <FrameLayout
+    <!-- The processed feed *is* the preview. Scaled to fill the screen. -->
+    <ImageView
+        android:id="@+id/processed"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <androidx.camera.view.PreviewView
-            android:id="@+id/preview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <ImageView
-            android:id="@+id/processed"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="Processed monochrome frame"
-            android:scaleType="fitCenter" />
-
-    </FrameLayout>
+        android:layout_height="match_parent"
+        android:contentDescription="Live SIMD-processed camera feed"
+        android:scaleType="centerCrop" />
 
     <!-- Title (top overlay; padded to clear status bar) -->
     <TextView
@@ -32,7 +21,7 @@
         android:layout_gravity="top"
         android:background="#cc0d0f12"
         android:padding="12dp"
-        android:text="Slim — live monochrome benchmark"
+        android:text="Slim — live SIMD camera filter"
         android:textColor="#ffffff"
         android:textSize="16sp"
         android:textStyle="bold" />
@@ -54,28 +43,9 @@
 
             <Button
                 android:id="@+id/kernelToggle"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="Kernel: invert"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/sourceToggle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="View: processed"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/openBench"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Static bench"
                 android:textAllCaps="false" />
 
         </LinearLayout>

@@ -2,6 +2,39 @@
 
 **Write ARM64 NEON code in Kotlin. Run it on Android. No JNI per call.**
 
+## A note before we start
+
+This started as something I bumped into while reading about **userspace
+boundaries** on Android — the invisible lines the OS and the runtime
+draw *inside* your own process. The JNI boundary between Kotlin and
+native code. The W^X boundary that says no page is both writable and
+executable. The hidden-API boundary that locks you out of ART's
+internals starting on API 28.
+
+What grabbed me is that most of these boundaries are *convention, not
+silicon* — they're enforced by checks running in the same process you
+are. ART, for instance, links every Kotlin method to a function pointer
+(`entry_point_from_quick_compiled_code_`) that the dispatcher reads on
+every call. If you can flip that pointer to a page of your own ARM64
+machine code, the runtime jumps into your code instead of the
+JIT-compiled body — no JNI hop, no separate `.so`, no NDK build. Your
+kernel returns, the runtime keeps going like nothing happened.
+
+Slim is a working answer to *"what if the boundary between Kotlin and
+native code is just a writable pointer?"* — packaged as a small SDK so
+I could reuse the trick for tight SIMD kernels without paying NDK's
+startup cost on every project.
+
+If you're here for the SDK, skip to **[Installation](#installation)**.
+If you came for the boundary stuff, the
+[Architecture doc](docs/ARCHITECTURE.md) walks every line we end up
+crossing: memfd dual-map (W^X), entry-point hijack (managed/native),
+four-tier hidden-API bypass.
+
+---
+
+## What it looks like
+
 ```kotlin
 val pixels = Floats(myFloatArray)
 
