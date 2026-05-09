@@ -1,6 +1,51 @@
-# Slim
+<div align="center">
 
-**Write ARM64 NEON code in Kotlin. Run it on Android. No JNI per call.**
+```
+   ███████╗██╗     ██╗███╗   ███╗
+   ██╔════╝██║     ██║████╗ ████║
+   ███████╗██║     ██║██╔████╔██║
+   ╚════██║██║     ██║██║╚██╔╝██║
+   ███████║███████╗██║██║ ╚═╝ ██║
+   ╚══════╝╚══════╝╚═╝╚═╝     ╚═╝
+```
+
+### Write ARM64 NEON code in Kotlin. Run it on Android. **No JNI per call.**
+
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
+[![minSdk](https://img.shields.io/badge/minSdk-26-brightgreen.svg?style=flat-square)](#-supported-devices)
+[![ABI](https://img.shields.io/badge/abi-arm64--v8a-orange.svg?style=flat-square)](#-supported-devices)
+[![Version](https://img.shields.io/badge/version-0.1.0-informational.svg?style=flat-square)](#-installation)
+[![Speedup](https://img.shields.io/badge/speedup-6.95×%20vs%20Kotlin-success.svg?style=flat-square)](#-performance)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.x-7f52ff.svg?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
+
+**[ Installation ](#-installation) · [ Quick start ](#-quick-start) · [ Architecture ](docs/ARCHITECTURE.md) · [ Cookbook ](docs/COOKBOOK.md) · [ Contributing ](docs/CONTRIBUTING.md)**
+
+</div>
+
+---
+
+<details>
+<summary><b>Table of contents</b></summary>
+
+- [A note before we start](#a-note-before-we-start)
+- [🧬 What it looks like](#-what-it-looks-like)
+- [⚡ Why](#-why)
+- [📦 Installation](#-installation)
+- [🚀 Quick start](#-quick-start)
+- [🧩 Core concepts](#-core-concepts)
+- [🍳 Examples](#-examples)
+- [🔬 How it works](#-how-it-works)
+- [📊 Performance](#-performance)
+- [📱 Supported devices](#-supported-devices)
+- [⚠️ Caveats and limitations](#-caveats-and-limitations)
+- [📚 Documentation](#-documentation)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [🙏 Acknowledgments](#-acknowledgments)
+
+</details>
+
+---
 
 ## A note before we start
 
@@ -25,15 +70,15 @@ native code is just a writable pointer?"* — packaged as a small SDK so
 I could reuse the trick for tight SIMD kernels without paying NDK's
 startup cost on every project.
 
-If you're here for the SDK, skip to **[Installation](#installation)**.
-If you came for the boundary stuff, the
-[Architecture doc](docs/ARCHITECTURE.md) walks every line we end up
-crossing: memfd dual-map (W^X), entry-point hijack (managed/native),
-four-tier hidden-API bypass.
+> If you're here for the SDK, skip to **[Installation](#-installation)**.
+> If you came for the boundary stuff, the
+> [Architecture doc](docs/ARCHITECTURE.md) walks every line we end up
+> crossing: memfd dual-map (W^X), entry-point hijack (managed/native),
+> four-tier hidden-API bypass.
 
 ---
 
-## What it looks like
+## 🧬 What it looks like
 
 ```kotlin
 val pixels = Floats(myFloatArray)
@@ -63,16 +108,16 @@ The runtime handles JIT memory, ART internals, and dispatch.
 
 ---
 
-## Why
+## ⚡ Why
 
 If you've written SIMD on Android, you've used one of these:
 
 | Approach | Problem |
 |---|---|
-| **JNI + NDK + `<arm_neon.h>`** | Per-call JNI overhead (~100 ns), C++ build pipeline, separate `.so` per ABI, no runtime codegen. |
-| **RenderScript** | Deprecated since API 31. Compute kernels only, opaque scheduler. |
-| **Vulkan compute** | Powerful but verbose. ~200 lines of boilerplate for a SAXPY. Driver overhead on small kernels. |
-| **Pure Kotlin/Java** | JIT tries hard, but no auto-vectorization for ARM. 5-10× slower than NEON for tight loops. |
+| 🔧 **JNI + NDK + `<arm_neon.h>`** | Per-call JNI overhead (~100 ns), C++ build pipeline, separate `.so` per ABI, no runtime codegen. |
+| 🪦 **RenderScript** | Deprecated since API 31. Compute kernels only, opaque scheduler. |
+| 🌋 **Vulkan compute** | Powerful but verbose. ~200 lines of boilerplate for a SAXPY. Driver overhead on small kernels. |
+| 🐢 **Pure Kotlin/Java** | JIT tries hard, but no auto-vectorization for ARM. 5-10× slower than NEON for tight loops. |
 
 Slim sits in a gap. You write NEON instructions in Kotlin, the runtime
 JIT-compiles them into native code, and ART dispatches the kernel via a
@@ -80,20 +125,20 @@ hijacked entry-point — no JNI, no separate build artifact, no scheduler
 in the way. The kernel runs at NEON-native throughput; the framing is
 plain Kotlin function calls.
 
-**Measured on Samsung S24 (Android 16, Cortex-X4):** SAXPY-style
-brightness kernel over a 16 MB float buffer:
+> 📈 **Measured on Samsung S24 (Android 16, Cortex-X4):** SAXPY-style
+> brightness kernel over a 16 MB float buffer:
 
 | Path | Time | Throughput | Speedup |
 |---|---|---|---|
 | Hot-path Kotlin scalar (JIT-compiled) | 5.32 ms | 3.0 GB/s | 1.0× |
-| Slim, zero-copy via `Floats` | 0.76 ms | 23.4 GB/s | **6.95×** |
+| Slim, zero-copy via `Floats` | **0.76 ms** | **23.4 GB/s** | 🔥 **6.95×** |
 
 Concurrency: 200 dispatches across 4 coroutines complete in 67 ms with
 zero races (probe-pool serves up to 8 in-flight kernels).
 
 ---
 
-## Installation
+## 📦 Installation
 
 ```kotlin
 // settings.gradle.kts (or your repos block)
@@ -116,13 +161,13 @@ dependencies {
 }
 ```
 
-> **Status**: 0.1.0 — V1 internal release. Public API shape is stable
+> 🚧 **Status**: 0.1.0 — V1 internal release. Public API shape is stable
 > (the `Slim` / `slim {}` surface won't change incompatibly), but the
 > underlying engine is still validating against new Android releases.
 
 ---
 
-## Quick start
+## 🚀 Quick start
 
 ```kotlin
 import io.simdkt.slim.Slim
@@ -157,7 +202,7 @@ class MyViewModel : ViewModel() {
 
 ---
 
-## Core concepts
+## 🧩 Core concepts
 
 ### `Slim.initialize(context)`
 
@@ -177,7 +222,7 @@ Accepts data in several shapes:
 | Type | Cost per call | Use when |
 |---|---|---|
 | `FloatArray` / `IntArray` / `ByteArray` | 2 heap↔native copies (~2 ms / 16 MB) | One-shot kernels. Convenient. |
-| `Floats` / `Ints` / `Bytes` | **Zero copy** | Hot paths, repeated calls. |
+| `Floats` / `Ints` / `Bytes` | ⚡ **Zero copy** | Hot paths, repeated calls. |
 | `ByteBuffer` (direct) | Zero copy | Already managing your own native buffer. |
 | `Long` (raw native pointer) | Zero copy | JNI / `Unsafe` / `mmap` callers. |
 
@@ -231,7 +276,7 @@ slim(data) {
 
 ---
 
-## Examples
+## 🍳 Examples
 
 ### Brightness adjustment (SAXPY: y = a·x + b)
 
@@ -305,33 +350,60 @@ brightness/contrast, alpha blending, RGB→grayscale, box blur, and more.
 
 ---
 
-## How it works
+## 🔬 How it works
 
-Slim sits on top of three pieces of ART internals plumbing:
+Slim sits on top of three pieces of ART internals plumbing — setup once,
+encode per kernel, dispatch per call:
 
-1. **memfd dual-map JIT memory** — A `memfd` is mapped twice: once R/W
-   (for writing instruction bytes) and once R/X (for execution). The
-   pages share physical memory; allocating the R/X mapping *after* the
-   R/W writes complete dodges I-cache staleness without an explicit
-   flush. This is the "JIT executor" everyone reinvents on Android.
+```mermaid
+flowchart TB
+    subgraph Setup["🔧 Slim.initialize() — once per process"]
+        H1["Hidden-API bypass<br/>(4-tier cascade)"]
+        H2["Locate ArtMethod offsets<br/>(probe entry_point_ field)"]
+        H1 --> H2
+    end
 
-2. **ART entry-point hijack dispatch** — Every Java/Kotlin method has an
-   `ArtMethod` struct in the runtime; the field
-   `entry_point_from_quick_compiled_code_` is a function pointer that
-   ART's "quick" dispatch path jumps through. Slim overwrites that
-   pointer with the address of your shellcode, calls the corresponding
-   `Method` reflectively (which jumps directly into the JIT'd code via
-   ART's normal dispatch), then restores the pointer. **Zero JNI on the
-   dispatch path.** The patch/unpatch is ~200 ns of `Unsafe.peekLong`/
-   `pokeLong` calls.
+    subgraph Encode["📝 slim &#123; ... &#125; — per kernel"]
+        E1["Encode NEON instructions<br/>(two-pass label fixup)"]
+        E2["Write bytes → memfd R/W"]
+        E3["mmap memfd R/X<br/>(shared physical pages, no flush)"]
+        E1 --> E2 --> E3
+    end
 
-3. **Hidden-API bypass** — On API 28+, ART blocks reflective access to
-   `libcore.io.Os.mmap`, ArtMethod fields, and `setHiddenApiExemptions`.
-   Slim defeats this with a four-tier cascade. The last tier — used on
-   API 36 — locates the `art::Runtime` singleton by ELF-parsing
-   `libart.so` for `art::Runtime::instance_`, then probes the Runtime's
-   memory for the `hidden_api_policy_` field and writes `kDisabled`. The
-   discovered offset is cached at `<cacheDir>/nk_policy.bin`.
+    subgraph Dispatch["⚡ Per call — no JNI"]
+        D1["Patch ArtMethod.entry_point_<br/>→ R/X page address"]
+        D2["ART quick-dispatch jumps<br/>into shellcode"]
+        D3["NEON kernel runs at native speed"]
+        D4["ret → restore entry_point_"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    Setup ==> Encode
+    Encode ==> Dispatch
+```
+
+**1. memfd dual-map JIT memory** — A `memfd` is mapped twice: once R/W
+(for writing instruction bytes) and once R/X (for execution). The pages
+share physical memory; allocating the R/X mapping *after* the R/W writes
+complete dodges I-cache staleness without an explicit flush. This is the
+"JIT executor" everyone reinvents on Android.
+
+**2. ART entry-point hijack dispatch** — Every Java/Kotlin method has an
+`ArtMethod` struct in the runtime; the field
+`entry_point_from_quick_compiled_code_` is a function pointer that
+ART's "quick" dispatch path jumps through. Slim overwrites that pointer
+with the address of your shellcode, calls the corresponding `Method`
+reflectively (which jumps directly into the JIT'd code via ART's normal
+dispatch), then restores the pointer. **Zero JNI on the dispatch path.**
+The patch/unpatch is ~200 ns of `Unsafe.peekLong` / `pokeLong` calls.
+
+**3. Hidden-API bypass** — On API 28+, ART blocks reflective access to
+`libcore.io.Os.mmap`, ArtMethod fields, and `setHiddenApiExemptions`.
+Slim defeats this with a four-tier cascade. The last tier — used on
+API 36 — locates the `art::Runtime` singleton by ELF-parsing
+`libart.so` for `art::Runtime::instance_`, then probes the Runtime's
+memory for the `hidden_api_policy_` field and writes `kDisabled`. The
+discovered offset is cached at `<cacheDir>/nk_policy.bin`.
 
 For the full architectural walkthrough — including how the encoder's
 two-pass label fixup works, how the kernel cache is keyed, and the
@@ -339,36 +411,44 @@ concurrency model — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
-## Performance
+## 📊 Performance
 
 On a Samsung S24 (Cortex-X4, Android 16), 1024×1024 RGBA-as-float kernel
 applying `y = 0.5·x`:
+
+```mermaid
+xychart-beta
+    title "Throughput (GB/s) — higher is better"
+    x-axis ["Kotlin scalar", "Slim (FloatArray)", "Slim (Floats, zero-copy)"]
+    y-axis "GB/s" 0 --> 25
+    bar [3.0, 7.2, 23.4]
+```
 
 | Path | Time (ms) | Throughput | Notes |
 |---|---|---|---|
 | Kotlin scalar | 5.32 | 3.0 GB/s | Hot-path JIT'd, best of 10 |
 | Slim w/ `FloatArray` (eager copy) | 2.22 | 7.2 GB/s | Includes 2× heap↔native copy |
-| Slim w/ `Floats` (zero-copy) | 0.76 | 23.4 GB/s | 6.95× over Kotlin |
+| Slim w/ `Floats` (zero-copy) | **0.76** | **23.4 GB/s** | 🔥 6.95× over Kotlin |
 
-Cold start: ~3 ms with warm caches (`nk_ep.bin` + `nk_policy.bin` from
-prior run), ~10 ms uncached.
+**Cold start:** ~3 ms with warm caches (`nk_ep.bin` + `nk_policy.bin`
+from prior run), ~10 ms uncached.
 
-Per-call dispatch overhead (excluding kernel work): ~3 µs (probe-slot
+**Per-call dispatch overhead** (excluding kernel work): ~3 µs (probe-slot
 acquire + EP patch/unpatch + reflective invoke).
 
-Concurrent dispatch: 4 coroutines × 50 calls = 200 dispatches in ~67 ms,
-~3 K calls/sec. Probe pool serves up to 8 in-flight before blocking.
+**Concurrent dispatch:** 4 coroutines × 50 calls = 200 dispatches in
+~67 ms, ~3 K calls/sec. Probe pool serves up to 8 in-flight before
+blocking.
 
 ---
 
-## Supported devices
+## 📱 Supported devices
 
-- **API**: 31+ (Android 12 and up)
-- **ABI**: arm64-v8a only
-- **Confirmed on-device**: AOSP-derived Android 12-16 (Pixel, Samsung
-  One UI). The bypass cascade gracefully falls through technique-by-
-  technique on novel ROMs; if all four fail, `Slim.initialize` returns
-  `false` and `lastError` reports which step gave up.
+|  | |
+|---|---|
+| **API** | 26+ (Android 8.0 and up) |
+| **ABI** | `arm64-v8a` only |
+| **Confirmed on-device** | AOSP-derived Android 8–16 (Pixel, Samsung One UI). The bypass cascade gracefully falls through technique-by-technique on novel ROMs; if all four fail, `Slim.initialize` returns `false` and `lastError` reports which step gave up. |
 
 The runtime requires:
 
@@ -381,75 +461,98 @@ The runtime requires:
 
 ---
 
-## Caveats and limitations
+## ⚠️ Caveats and limitations
 
-- **Hidden-API bypass is invasive.** Slim performs reflection that's
-  blocked by default on API 28+. The bypass works but is exactly the
-  kind of thing anti-tamper SDKs (DexProtector, Promon SHIELD, AppDome)
-  flag. If your app embeds one of those, evaluate compatibility before
-  shipping.
-- **Single-writer per `KernelHandle`.** The high-level `slim {}` API
-  serializes calls on the same compiled kernel via a per-handle `Mutex`
-  — different kernels run in parallel, same kernel does not. To get true
-  parallelism on the same workload, give each worker its own data buffer
-  (the cache will produce the same kernel handle, but each worker pays
-  the mutex on its turn — buffer-parallel, kernel-serial).
-- **No kernel preemption.** Once dispatched, a kernel runs to its
-  `ret`. Coroutine cancellation only takes effect when control returns.
-- **arm64 only.** ARMv7 (`armeabi-v7a`) is not supported. The encoder is
-  AArch64-specific; ARMv7 would be a parallel effort (~3,400 new lines).
-  Most current Android phones are arm64; Wear / TV / IoT may not be.
-- **No SVE / SME / crypto instructions in the encoder.** ARMv8.2-A scope
-  (FP16, dot product, saturating arithmetic) is covered; SVE2 is a
-  V3-class addition.
-- **No compile-time codegen.** Kernel encoding happens at runtime
-  (~5 µs per `slim {}` body). For sub-µs hot paths a Kotlin compiler
-  plugin that pre-encodes `slim {}` blocks at build time is on the
-  roadmap (see `ENCODER_V2_PLAN.md` Tier 5).
+<details>
+<summary><b>Hidden-API bypass is invasive</b></summary>
+
+Slim performs reflection that's blocked by default on API 28+. The
+bypass works but is exactly the kind of thing anti-tamper SDKs
+(DexProtector, Promon SHIELD, AppDome) flag. If your app embeds one of
+those, evaluate compatibility before shipping.
+</details>
+
+<details>
+<summary><b>Single-writer per <code>KernelHandle</code></b></summary>
+
+The high-level `slim {}` API serializes calls on the same compiled
+kernel via a per-handle `Mutex` — different kernels run in parallel,
+same kernel does not. To get true parallelism on the same workload, give
+each worker its own data buffer (the cache will produce the same kernel
+handle, but each worker pays the mutex on its turn — buffer-parallel,
+kernel-serial).
+</details>
+
+<details>
+<summary><b>No kernel preemption</b></summary>
+
+Once dispatched, a kernel runs to its `ret`. Coroutine cancellation only
+takes effect when control returns.
+</details>
+
+<details>
+<summary><b>arm64 only</b></summary>
+
+ARMv7 (`armeabi-v7a`) is not supported. The encoder is AArch64-specific;
+ARMv7 would be a parallel effort (~3,400 new lines). Most current
+Android phones are arm64; Wear / TV / IoT may not be.
+</details>
+
+<details>
+<summary><b>No SVE / SME / crypto instructions in the encoder</b></summary>
+
+ARMv8.2-A scope (FP16, dot product, saturating arithmetic) is covered;
+SVE2 is a V3-class addition.
+</details>
+
+<details>
+<summary><b>No compile-time codegen</b></summary>
+
+Kernel encoding happens at runtime (~5 µs per `slim {}` body). For
+sub-µs hot paths a Kotlin compiler plugin that pre-encodes `slim {}`
+blocks at build time is on the roadmap (see `ENCODER_V2_PLAN.md`
+Tier 5).
+</details>
 
 ---
 
-## Documentation
+## 📚 Documentation
 
-- **[`README.md`](README.md)** — this file (overview + quick start).
-- **[`nativekt/README.md`](nativekt/README.md)** — module-specific
-  reference, lower-level API surface.
-- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — how the runtime
-  works internally: memfd dual-map, EP hijack, hidden-API bypass,
-  encoder, label assembler, kernel cache.
-- **[`docs/COOKBOOK.md`](docs/COOKBOOK.md)** — recipes for common
-  kernels: SAXPY, dot product, color filters, blur, threshold.
-- **[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)** — adding encoder
-  helpers, the testing pattern, ART-internals work.
-- **[`SDK_PLAN.md`](SDK_PLAN.md)** — original V1 build plan (historical).
-- **[`ENCODER_V2_PLAN.md`](ENCODER_V2_PLAN.md)** — V2 encoder roadmap
-  with what shipped (Tiers 1-4) and what's deferred (Tier 5).
+| Doc | What's in it |
+|---|---|
+| **[`README.md`](README.md)** | This file — overview + quick start. |
+| **[`nativekt/README.md`](nativekt/README.md)** | Module-specific reference, lower-level API surface. |
+| **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | How the runtime works internally: memfd dual-map, EP hijack, hidden-API bypass, encoder, label assembler, kernel cache. |
+| **[`docs/COOKBOOK.md`](docs/COOKBOOK.md)** | Recipes for common kernels: SAXPY, dot product, color filters, blur, threshold. |
+| **[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)** | Adding encoder helpers, the testing pattern, ART-internals work. |
+| **[`SDK_PLAN.md`](SDK_PLAN.md)** | Original V1 build plan (historical). |
+| **[`ENCODER_V2_PLAN.md`](ENCODER_V2_PLAN.md)** | V2 encoder roadmap with what shipped (Tiers 1–4) and what's deferred (Tier 5). |
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 PRs welcome. The most common contributions:
 
-- **New encoder helpers** — adding to the ARM64 instruction coverage.
+- 🧮 **New encoder helpers** — adding to the ARM64 instruction coverage.
   See `docs/CONTRIBUTING.md` for the golden-byte test pattern.
-- **New `slim {}` recipes** — interesting NEON kernels for the cookbook.
-- **Per-vendor bypass tweaks** — if the four-tier cascade fails on your
-  device, the logcat from `Slim.initialize` tells us which tier; PRs
-  with new fallback paths or per-vendor fixes are great.
+- 🍳 **New `slim {}` recipes** — interesting NEON kernels for the cookbook.
+- 🩹 **Per-vendor bypass tweaks** — if the four-tier cascade fails on
+  your device, the logcat from `Slim.initialize` tells us which tier;
+  PRs with new fallback paths or per-vendor fixes are great.
 
 For larger work (encoder restructuring, V3 compile-time plugin), open an
 issue first to discuss design.
 
 ---
 
-## License
+## 📄 License
 
 Apache 2.0. See [`LICENSE`](LICENSE).
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 The hidden-API bypass cascade builds on techniques from the broader
 Android reflection community — particularly LSPosed's
@@ -460,3 +563,11 @@ documentation. The ARM64 instruction encoder cross-checks against
 LLVM's `AArch64InstPrinter` golden bytes via `clang+llvm-objdump`.
 
 ---
+
+<div align="center">
+
+**Slim** · Built for tight SIMD on Android, with care.
+
+[⬆ back to top](#)
+
+</div>
