@@ -128,8 +128,10 @@ object Arm64Decoder {
         val hw    = (op ushr 21) and 0b11    // shift = hw * 16
         val imm16 = (op ushr  5) and 0xFFFF
         val rd    = op and 0x1F
-        val mnem  = when (opc) { 0b00 -> "movn"; 0b10 -> "movz"; 0b11 -> "movk"; else -> "?" }
-        val regName = if (sf == 1) "x$rd" else "w$rd"
+        val mnem   = when (opc) { 0b00 -> "movn"; 0b10 -> "movz"; 0b11 -> "movk"; else -> "?" }
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
+        val regName = if (rd == 31) zrName else "$reg$rd"
         val ops = mutableListOf<Operand>(
             Operand.Reg(regName),
             Operand.Imm(imm16.toLong(), ImmFormat.HEX),
@@ -153,10 +155,15 @@ object Arm64Decoder {
         val imm12 = (op ushr 10) and 0xFFF
         val rn    = (op ushr  5) and 0x1F
         val rd    = op and 0x1F
-        val reg   = if (sf == 1) "x" else "w"
+        val reg    = if (sf == 1) "x" else "w"
         val zrName = if (sf == 1) "xzr" else "wzr"
-        val rdName = if (rd == 31) zrName else "$reg$rd"
-        val rnName = if (rn == 31) "sp"  else "$reg$rn"
+        val spName = if (sf == 1) "sp" else "wsp"
+        val rdName = when {
+            rd == 31 && s == 1 -> zrName   // ADDS/SUBS — result discarded, use ZR
+            rd == 31           -> spName   // ADD/SUB  — write result to SP
+            else               -> "$reg$rd"
+        }
+        val rnName = if (rn == 31) spName else "$reg$rn"
 
         // cmp alias: subs xzr, Rn, #imm  (op=1, s=1, rd=31)
         if (opc == 1 && s == 1 && rd == 31) {
@@ -232,13 +239,13 @@ object Arm64Decoder {
         // combined = N:NOT(imms[5:0]) as 7-bit value (bit6=N, bits5..0=~imms)
         val combined = (n shl 6) or ((imms.inv()) and 0x3F)
         // Find position of highest set bit (len must be >= 1)
-        var lens = -1
+        var len = -1
         for (i in 6 downTo 0) {
-            if ((combined ushr i) and 1 != 0) { lens = i; break }
+            if ((combined ushr i) and 1 != 0) { len = i; break }
         }
-        if (lens < 1) return 0L  // invalid encoding — return 0 as best effort
+        if (len < 1) return 0L  // invalid encoding — return 0 as best effort
 
-        val esize = 1 shl lens                 // element size: 2, 4, 8, 16, 32, or 64
+        val esize = 1 shl len                  // element size: 2, 4, 8, 16, 32, or 64
         val s     = imms and (esize - 1)       // number of set bits minus 1
         val r     = immr and (esize - 1)       // rotate-right amount
         val emask = if (esize == 64) -1L else ((1L shl esize) - 1L)
@@ -268,10 +275,11 @@ object Arm64Decoder {
         val imms = (op ushr 10) and 0x3F
         val rn   = (op ushr  5) and 0x1F
         val rd   = op and 0x1F
-        val reg  = if (sf == 1) "x" else "w"
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
         val regBits = if (sf == 1) 64 else 32
-        val rdName = "$reg$rd"
-        val rnName = "$reg$rn"
+        val rdName = if (rd == 31) zrName else "$reg$rd"
+        val rnName = if (rn == 31) zrName else "$reg$rn"
 
         return when (opc) {
             0b10 -> decodeUbfm(sf, regBits, immr, imms, rdName, rnName, op)

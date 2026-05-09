@@ -259,6 +259,117 @@ class Arm64DecoderTest {
         )
     }
 
+    @Test fun aliasesAndEdges() {
+        // Bug 1 regression: sub sp, sp, #16  (function prologue — Rd=31 must be SP when S=0)
+        // Encodes as: subImm(X(31), X(31), 16)
+        assertDec(
+            0xd10043ff.toInt(),
+            DecodedInsn(
+                "sub",
+                listOf(Operand.Reg("sp"), Operand.Reg("sp"), Operand.Imm(16, ImmFormat.DEC)),
+                0xd10043ff.toInt(),
+            ),
+        )
+
+        // Bug 2: movn — rd=31 must emit xzr (movn xzr, #5 is legal, just pointless)
+        // Encodes as: movn(X(31), 5)  — sf=1, opc=00, hw=0, imm16=5, rd=31
+        assertDec(
+            0x928000bf.toInt(),
+            DecodedInsn(
+                "movn",
+                listOf(Operand.Reg("xzr"), Operand.Imm(5, ImmFormat.HEX)),
+                0x928000bf.toInt(),
+            ),
+        )
+
+        // movn x0, #5 (normal form)
+        assertDec(
+            0x928000a0.toInt(),
+            DecodedInsn(
+                "movn",
+                listOf(Operand.Reg("x0"), Operand.Imm(5, ImmFormat.HEX)),
+                0x928000a0.toInt(),
+            ),
+        )
+
+        // bfm x0, x1, #4, #8  (non-aliased bitfield)
+        // sf=1, opc=01, n=1, immr=4, imms=8, rn=1, rd=0
+        assertDec(
+            0xb3442020.toInt(),
+            DecodedInsn(
+                "bfm",
+                listOf(
+                    Operand.Reg("x0"),
+                    Operand.Reg("x1"),
+                    Operand.Imm(4, ImmFormat.DEC),
+                    Operand.Imm(8, ImmFormat.DEC),
+                ),
+                0xb3442020.toInt(),
+            ),
+        )
+
+        // uxtb w0, w1  (ubfm w0, w1, #0, #7)
+        assertDec(
+            0x53001c20,
+            DecodedInsn(
+                "uxtb",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1")),
+                0x53001c20,
+            ),
+        )
+
+        // uxth w0, w1  (ubfm w0, w1, #0, #15)
+        assertDec(
+            0x53003c20,
+            DecodedInsn(
+                "uxth",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1")),
+                0x53003c20,
+            ),
+        )
+
+        // sxtb w0, w1  (sbfm w0, w1, #0, #7 — 32-bit form)
+        assertDec(
+            0x13001c20,
+            DecodedInsn(
+                "sxtb",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1")),
+                0x13001c20,
+            ),
+        )
+
+        // sxth w0, w1  (sbfm w0, w1, #0, #15 — 32-bit form)
+        assertDec(
+            0x13003c20,
+            DecodedInsn(
+                "sxth",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1")),
+                0x13003c20,
+            ),
+        )
+
+        // sxtw x0, w1  (sbfm x0, x1, #0, #31 — 64-bit form, Rn displayed as w-reg)
+        assertDec(
+            0x93407c20.toInt(),
+            DecodedInsn(
+                "sxtw",
+                listOf(Operand.Reg("x0"), Operand.Reg("w1")),
+                0x93407c20.toInt(),
+            ),
+        )
+
+        // mov x0, #0xff alias from logical-imm  (orr x0, xzr, #0xff)
+        // sf=1, opc=01, n=1, immr=0, imms=7, rn=31, rd=0
+        assertDec(
+            0xb2401fe0.toInt(),
+            DecodedInsn(
+                "mov",
+                listOf(Operand.Reg("x0"), Operand.Imm(0xFFL, ImmFormat.HEX)),
+                0xb2401fe0.toInt(),
+            ),
+        )
+    }
+
     @Test fun shifts() {
         // lsl x0, x1, #8  — Arm64Test.kt:shifts line 109
         assertDec(
