@@ -401,4 +401,183 @@ class Arm64DecoderTest {
             ),
         )
     }
+
+    // ------------------------------------------------------------------
+    // Data-processing — register: paired assertDec for every assertEnc in
+    // Arm64Test.kt:{arithReg, compare(reg), mulDiv, logical(reg), condSelect}
+    // ------------------------------------------------------------------
+
+    @Test fun arithReg() {
+        // add x0, x1, x2  — Arm64Test.kt:arithReg line 54
+        assertDec(
+            0x8b020020.toInt(),
+            DecodedInsn(
+                "add",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0x8b020020.toInt(),
+            ),
+        )
+        // sub x0, x1, x2  — Arm64Test.kt:arithReg line 55
+        assertDec(
+            0xcb020020.toInt(),
+            DecodedInsn(
+                "sub",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0xcb020020.toInt(),
+            ),
+        )
+        // cmp x0, x1  — Arm64Test.kt:compare line 64 (register form)
+        assertDec(
+            0xeb01001f.toInt(),
+            DecodedInsn(
+                "cmp",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1")),
+                0xeb01001f.toInt(),
+            ),
+        )
+        // mov x1, x0  (orr x1, xzr, x0) — Arm64Test.kt:logical line 105
+        assertDec(
+            0xaa0103e0.toInt(),
+            DecodedInsn(
+                "mov",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1")),
+                0xaa0103e0.toInt(),
+            ),
+        )
+    }
+
+    @Test fun mulDiv() {
+        // mul x0, x1, x2  — Arm64Test.kt:mulDiv line 94
+        assertDec(
+            0x9b027c20.toInt(),
+            DecodedInsn(
+                "mul",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0x9b027c20.toInt(),
+            ),
+        )
+        // madd x0, x1, x2, x3  — Arm64Test.kt:mulDiv line 95
+        assertDec(
+            0x9b020c20.toInt(),
+            DecodedInsn(
+                "madd",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2"), Operand.Reg("x3")),
+                0x9b020c20.toInt(),
+            ),
+        )
+        // udiv x0, x1, x2  — Arm64Test.kt:mulDiv line 96
+        assertDec(
+            0x9ac20820.toInt(),
+            DecodedInsn(
+                "udiv",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0x9ac20820.toInt(),
+            ),
+        )
+        // sdiv w0, w1, w2  — Arm64Test.kt:mulDiv line 97
+        assertDec(
+            0x1ac20c20.toInt(),
+            DecodedInsn(
+                "sdiv",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1"), Operand.Reg("w2")),
+                0x1ac20c20.toInt(),
+            ),
+        )
+    }
+
+    @Test fun logicalReg() {
+        // and x0, x1, x2  — Arm64Test.kt:logical line 101
+        assertDec(
+            0x8a020020.toInt(),
+            DecodedInsn(
+                "and",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0x8a020020.toInt(),
+            ),
+        )
+        // orr x0, x1, x2  — Arm64Test.kt:logical line 102
+        assertDec(
+            0xaa020020.toInt(),
+            DecodedInsn(
+                "orr",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0xaa020020.toInt(),
+            ),
+        )
+        // eor x0, x1, x2  — Arm64Test.kt:logical line 103
+        assertDec(
+            0xca020020.toInt(),
+            DecodedInsn(
+                "eor",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2")),
+                0xca020020.toInt(),
+            ),
+        )
+        // mvn x0, x1  — Arm64Test.kt:logical line 104
+        assertDec(
+            0xaa2103e0.toInt(),
+            DecodedInsn(
+                "mvn",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1")),
+                0xaa2103e0.toInt(),
+            ),
+        )
+        // mov x0, x1  (orr x0, xzr, x1) — Arm64Test.kt:logical line 105
+        assertDec(
+            0xaa0103e0.toInt(),
+            DecodedInsn(
+                "mov",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1")),
+                0xaa0103e0.toInt(),
+            ),
+        )
+    }
+
+    @Test fun condSelectReg() {
+        // csel x0, x1, x2, eq  — Arm64Test.kt:condSelect line 206-207
+        assertDec(
+            0x9a820020.toInt(),
+            DecodedInsn(
+                "csel",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2"), Operand.CondCode("eq")),
+                0x9a820020.toInt(),
+            ),
+        )
+        // csel w0, w1, w2, ne  — Arm64Test.kt:condSelect line 208-209
+        assertDec(
+            0x1a821020.toInt(),
+            DecodedInsn(
+                "csel",
+                listOf(Operand.Reg("w0"), Operand.Reg("w1"), Operand.Reg("w2"), Operand.CondCode("ne")),
+                0x1a821020.toInt(),
+            ),
+        )
+        // csinc x0, x1, x2, lt  — Arm64Test.kt:condSelect line 210-211
+        assertDec(
+            0x9a82b420.toInt(),
+            DecodedInsn(
+                "csinc",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2"), Operand.CondCode("lt")),
+                0x9a82b420.toInt(),
+            ),
+        )
+        // csinv x0, x1, x2, gt  — Arm64Test.kt:condSelect line 212-213
+        assertDec(
+            0xda82c020.toInt(),
+            DecodedInsn(
+                "csinv",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2"), Operand.CondCode("gt")),
+                0xda82c020.toInt(),
+            ),
+        )
+        // csneg x0, x1, x2, le  — Arm64Test.kt:condSelect line 214-215
+        assertDec(
+            0xda82d420.toInt(),
+            DecodedInsn(
+                "csneg",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2"), Operand.CondCode("le")),
+                0xda82d420.toInt(),
+            ),
+        )
+    }
 }

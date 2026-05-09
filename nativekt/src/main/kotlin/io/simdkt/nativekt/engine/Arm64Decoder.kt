@@ -8,6 +8,7 @@ object Arm64Decoder {
         isTestBranch(op)          -> decodeTestBranch(op)
         isRegisterBranch(op)      -> decodeRegisterBranch(op)
         isDataProcImm(op)         -> decodeDataProcImm(op)
+        isDataProcReg(op)         -> decodeDataProcReg(op)
         else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
     }
 
@@ -387,6 +388,208 @@ object Arm64Decoder {
                 op,
             )
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Data-processing — register  (bits 27..25 = 0b101)
+    // -----------------------------------------------------------------
+
+    // bits 27..25 = 0b101 (data-processing — register)
+    private fun isDataProcReg(op: Int): Boolean = (op ushr 25) and 0b111 == 0b101
+
+    private fun decodeDataProcReg(op: Int): DecodedInsn {
+        val op1 = (op ushr 28) and 1
+        val op2 = (op ushr 21) and 0xF
+        return when {
+            op1 == 0 && (op2 and 0b1000) == 0      -> decodeLogicalShiftedReg(op)
+            op1 == 0 && (op2 and 0b1001) == 0b1000 -> decodeAddSubShiftedReg(op)
+            op1 == 1 && op2 == 0b0110              -> decodeDataProc2Source(op)
+            op1 == 1 && (op2 and 0b1000) == 0b1000 -> decodeDataProc3Source(op)
+            op1 == 1 && op2 == 0b0100              -> decodeCondSelect(op)
+            else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+    }
+
+    // Logical shifted register: sf opc 01010 shift N Rm imm6 Rn Rd
+    // opc: 00=and 01=orr 10=eor 11=ands; N inverts to bic/orn/eon/bics
+    private fun decodeLogicalShiftedReg(op: Int): DecodedInsn {
+        val sf    = (op ushr 31) and 1
+        val opc   = (op ushr 29) and 0b11
+        val shift = (op ushr 22) and 0b11
+        val n     = (op ushr 21) and 1
+        val rm    = (op ushr 16) and 0x1F
+        val imm6  = (op ushr 10) and 0x3F
+        val rn    = (op ushr  5) and 0x1F
+        val rd    = op and 0x1F
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
+        fun regName(n: Int) = if (n == 31) zrName else "$reg$n"
+
+        val baseMnem = when (opc) { 0b00 -> "and"; 0b01 -> "orr"; 0b10 -> "eor"; else -> "ands" }
+        val mnem = if (n == 1) when (baseMnem) {
+            "and" -> "bic"; "orr" -> "orn"; "eor" -> "eon"; else -> "bics"
+        } else baseMnem
+
+        // mov Rd, Rm = orr Rd, xzr, Rm (opc=01, n=0, rn=31, no shift)
+        if (mnem == "orr" && rn == 31 && shift == 0 && imm6 == 0) {
+            return DecodedInsn("mov", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rm))), op)
+        }
+        // tst Rn, Rm = ands xzr, Rn, Rm (opc=11, n=0, rd=31)
+        if (mnem == "ands" && rd == 31) {
+            return DecodedInsn("tst", listOf(Operand.Reg(regName(rn)), Operand.Reg(regName(rm))), op)
+        }
+        // mvn Rd, Rm = orn Rd, xzr, Rm (opc=01, n=1, rn=31, no shift)
+        if (mnem == "orn" && rn == 31 && shift == 0 && imm6 == 0) {
+            return DecodedInsn("mvn", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rm))), op)
+        }
+
+        val ops = mutableListOf<Operand>(
+            Operand.Reg(regName(rd)),
+            Operand.Reg(regName(rn)),
+            Operand.Reg(regName(rm)),
+        )
+        if (imm6 != 0) ops += Operand.Imm(imm6.toLong(), ImmFormat.SHIFT_AMOUNT)
+        return DecodedInsn(mnem, ops, op)
+    }
+
+    // Add/sub shifted register: sf op S 01011 shift 0 Rm imm6 Rn Rd
+    // op: 0=add, 1=sub; S: set flags
+    // Aliases: subs xzr → cmp; sub Rd, xzr, Rm → neg
+    private fun decodeAddSubShiftedReg(op: Int): DecodedInsn {
+        val sf    = (op ushr 31) and 1
+        val opc   = (op ushr 30) and 1   // 0=add, 1=sub
+        val s     = (op ushr 29) and 1   // set flags
+        val shift = (op ushr 22) and 0b11
+        val rm    = (op ushr 16) and 0x1F
+        val imm6  = (op ushr 10) and 0x3F
+        val rn    = (op ushr  5) and 0x1F
+        val rd    = op and 0x1F
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
+        fun regName(n: Int) = if (n == 31) zrName else "$reg$n"
+
+        // cmp Rn, Rm = subs xzr, Rn, Rm (op=1, s=1, rd=31)
+        if (opc == 1 && s == 1 && rd == 31) {
+            return DecodedInsn("cmp", listOf(Operand.Reg(regName(rn)), Operand.Reg(regName(rm))), op)
+        }
+        // neg Rd, Rm = sub Rd, xzr, Rm (op=1, s=0, rn=31)
+        if (opc == 1 && s == 0 && rn == 31) {
+            return DecodedInsn("neg", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rm))), op)
+        }
+
+        val mnem = when {
+            opc == 0 && s == 0 -> "add"
+            opc == 0 && s == 1 -> "adds"
+            opc == 1 && s == 0 -> "sub"
+            else               -> "subs"
+        }
+        val ops = mutableListOf<Operand>(
+            Operand.Reg(regName(rd)),
+            Operand.Reg(regName(rn)),
+            Operand.Reg(regName(rm)),
+        )
+        if (imm6 != 0) ops += Operand.Imm(imm6.toLong(), ImmFormat.SHIFT_AMOUNT)
+        return DecodedInsn(mnem, ops, op)
+    }
+
+    // Data-processing 2-source: sf 0 0 11010110 Rm opcode Rn Rd
+    // Covers: udiv/sdiv (opcode 00001[01]), lsl-r/lsr-r/asr-r (opcode 00100[8/9/10])
+    private fun decodeDataProc2Source(op: Int): DecodedInsn {
+        val sf     = (op ushr 31) and 1
+        val rm     = (op ushr 16) and 0x1F
+        val opcode = (op ushr 10) and 0x3F   // bits 15..10
+        val rn     = (op ushr  5) and 0x1F
+        val rd     = op and 0x1F
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
+        fun regName(n: Int) = if (n == 31) zrName else "$reg$n"
+
+        val mnem = when (opcode) {
+            0b000010 -> "udiv"
+            0b000011 -> "sdiv"
+            0b001000 -> "lsl"
+            0b001001 -> "lsr"
+            0b001010 -> "asr"
+            else     -> return DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+        return DecodedInsn(
+            mnem,
+            listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm))),
+            op,
+        )
+    }
+
+    // Data-processing 3-source: sf 00 11011 opc Rm o0 Ra Rn Rd
+    // madd: opc=000, o0=0; msub: opc=000, o0=1
+    // mul = madd with Ra=xzr
+    private fun decodeDataProc3Source(op: Int): DecodedInsn {
+        val sf  = (op ushr 31) and 1
+        val opc = (op ushr 21) and 0b111   // bits 23..21
+        val rm  = (op ushr 16) and 0x1F
+        val o0  = (op ushr 15) and 1
+        val ra  = (op ushr 10) and 0x1F
+        val rn  = (op ushr  5) and 0x1F
+        val rd  = op and 0x1F
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
+        fun regName(n: Int) = if (n == 31) zrName else "$reg$n"
+
+        return when {
+            opc == 0b000 && o0 == 0 && ra == 31 ->
+                // mul Rd, Rn, Rm = madd Rd, Rn, Rm, xzr
+                DecodedInsn("mul", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm))), op)
+            opc == 0b000 && o0 == 0 ->
+                // madd Rd, Rn, Rm, Ra
+                DecodedInsn("madd", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm)), Operand.Reg(regName(ra))), op)
+            opc == 0b000 && o0 == 1 ->
+                // msub Rd, Rn, Rm, Ra
+                DecodedInsn("msub", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm)), Operand.Reg(regName(ra))), op)
+            else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+    }
+
+    // Conditional select: sf op S 11010100 Rm cond 0 op2 Rn Rd
+    // op=0/op2=0: csel; op=0/op2=1: csinc; op=1/op2=0: csinv; op=1/op2=1: csneg
+    // Alias: cset Rd, cond = csinc Rd, xzr, xzr, invert(cond)
+    private fun decodeCondSelect(op: Int): DecodedInsn {
+        val sf   = (op ushr 31) and 1
+        val opc  = (op ushr 30) and 1   // op bit
+        val rm   = (op ushr 16) and 0x1F
+        val cond = (op ushr 12) and 0xF
+        val op2  = (op ushr 10) and 1
+        val rn   = (op ushr  5) and 0x1F
+        val rd   = op and 0x1F
+        val reg    = if (sf == 1) "x" else "w"
+        val zrName = if (sf == 1) "xzr" else "wzr"
+        fun regName(n: Int) = if (n == 31) zrName else "$reg$n"
+
+        val mnem = when {
+            opc == 0 && op2 == 0 -> "csel"
+            opc == 0 && op2 == 1 -> "csinc"
+            opc == 1 && op2 == 0 -> "csinv"
+            else                 -> "csneg"
+        }
+
+        // cset Rd, cond = csinc Rd, xzr, xzr, invert(cond)
+        if (mnem == "csinc" && rn == 31 && rm == 31) {
+            val invertedCond = cond xor 1   // invert LSB to get opposite condition
+            return DecodedInsn(
+                "cset",
+                listOf(Operand.Reg(regName(rd)), Operand.CondCode(condName(invertedCond))),
+                op,
+            )
+        }
+
+        return DecodedInsn(
+            mnem,
+            listOf(
+                Operand.Reg(regName(rd)),
+                Operand.Reg(regName(rn)),
+                Operand.Reg(regName(rm)),
+                Operand.CondCode(condName(cond)),
+            ),
+            op,
+        )
     }
 
     private fun signExtend(value: Int, bits: Int): Int {
