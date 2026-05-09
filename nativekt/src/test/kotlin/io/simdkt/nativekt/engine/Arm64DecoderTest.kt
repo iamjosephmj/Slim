@@ -103,4 +103,125 @@ class Arm64DecoderTest {
         // b.nv (15)
         assertDec(0x5400002f.toInt(), DecodedInsn("b.nv", listOf(Operand.BranchOffset(4)), 0x5400002f.toInt()))
     }
+
+    // ------------------------------------------------------------------
+    // Data-processing — immediate: paired assertDec for every assertEnc
+    // in Arm64Test.kt:{moveWide, loadImmComposite, arithImm, compare(imm), shifts}
+    // ------------------------------------------------------------------
+
+    @Test fun moveWide() {
+        // movz x3, #0x40  (smoke-test: task-provided representative)
+        assertDec(
+            0xd2800803.toInt(),
+            DecodedInsn(
+                "movz",
+                listOf(Operand.Reg("x3"), Operand.Imm(0x40, ImmFormat.HEX)),
+                0xd2800803.toInt(),
+            ),
+        )
+
+        // movz x0, #0xCAFE  — Arm64Test.kt:moveWide line 22
+        assertDec(
+            0xd2995fc0.toInt(),
+            DecodedInsn("movz", listOf(Operand.Reg("x0"), Operand.Imm(0xCAFE, ImmFormat.HEX)), 0xd2995fc0.toInt()),
+        )
+
+        // movk x0, #0xC0DE, lsl 16  — Arm64Test.kt:moveWide line 23
+        assertDec(
+            0xf2b81bc0.toInt(),
+            DecodedInsn(
+                "movk",
+                listOf(Operand.Reg("x0"), Operand.Imm(0xC0DE, ImmFormat.HEX), Operand.Imm(16, ImmFormat.SHIFT_AMOUNT)),
+                0xf2b81bc0.toInt(),
+            ),
+        )
+
+        // movz w1, #0xCAFE  — Arm64Test.kt:moveWide line 24
+        assertDec(
+            0x52995fc1.toInt(),
+            DecodedInsn("movz", listOf(Operand.Reg("w1"), Operand.Imm(0xCAFE, ImmFormat.HEX)), 0x52995fc1.toInt()),
+        )
+
+        // movk w1, #0xC0DE, lsl 16  — Arm64Test.kt:moveWide line 25
+        assertDec(
+            0x72b81bc1.toInt(),
+            DecodedInsn(
+                "movk",
+                listOf(Operand.Reg("w1"), Operand.Imm(0xC0DE, ImmFormat.HEX), Operand.Imm(16, ImmFormat.SHIFT_AMOUNT)),
+                0x72b81bc1.toInt(),
+            ),
+        )
+    }
+
+    @Test fun loadImmComposite() {
+        // movz x0, #0xBABE  — Arm64Test.kt:loadImmComposite seq[0] (only assertEnc in that test)
+        assertDec(
+            0xd29757c0.toInt(),
+            DecodedInsn("movz", listOf(Operand.Reg("x0"), Operand.Imm(0xBABE, ImmFormat.HEX)), 0xd29757c0.toInt()),
+        )
+    }
+
+    @Test fun arithImm() {
+        // add x0, x1, #4  — Arm64Test.kt:arithImm line 59
+        assertDec(
+            0x91001020.toInt(),
+            DecodedInsn(
+                "add",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(4, ImmFormat.DEC)),
+                0x91001020.toInt(),
+            ),
+        )
+
+        // sub x0, x1, #4  — Arm64Test.kt:arithImm line 60
+        assertDec(
+            0xd1001020.toInt(),
+            DecodedInsn(
+                "sub",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(4, ImmFormat.DEC)),
+                0xd1001020.toInt(),
+            ),
+        )
+
+        // cmp x0, #0  — Arm64Test.kt:compare line 65 (immediate portion only; register cmp is not data-proc-imm)
+        assertDec(
+            0xf100001f.toInt(),
+            DecodedInsn(
+                "cmp",
+                listOf(Operand.Reg("x0"), Operand.Imm(0, ImmFormat.DEC)),
+                0xf100001f.toInt(),
+            ),
+        )
+    }
+
+    @Test fun shifts() {
+        // lsl x0, x1, #8  — Arm64Test.kt:shifts line 109
+        assertDec(
+            0xd378dc20.toInt(),
+            DecodedInsn(
+                "lsl",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(8, ImmFormat.DEC)),
+                0xd378dc20.toInt(),
+            ),
+        )
+
+        // lsr x0, x1, #8  — Arm64Test.kt:shifts line 110
+        assertDec(
+            0xd348fc20.toInt(),
+            DecodedInsn(
+                "lsr",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(8, ImmFormat.DEC)),
+                0xd348fc20.toInt(),
+            ),
+        )
+
+        // asr x0, x1, #8  — Arm64Test.kt:shifts line 111
+        assertDec(
+            0x9348fc20.toInt(),
+            DecodedInsn(
+                "asr",
+                listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Imm(8, ImmFormat.DEC)),
+                0x9348fc20.toInt(),
+            ),
+        )
+    }
 }
