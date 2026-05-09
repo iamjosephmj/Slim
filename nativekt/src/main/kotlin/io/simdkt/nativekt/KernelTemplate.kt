@@ -53,6 +53,42 @@ class KernelTemplate internal constructor(
 ) {
     /** Size of the kernel byte image in bytes. */
     val size: Int get() = bytes.size
+
+    /**
+     * Hex dump of the compiled kernel image, one 32-bit instruction per
+     * line as little-endian bytes (`AA BB CC DD`).
+     *
+     * Useful for offline disassembly with `llvm-objdump`:
+     *
+     * ```
+     * # paste the bytes (no spaces) into a file
+     * echo -n "AABBCCDD..." | xxd -r -p > kernel.bin
+     * llvm-objdump -D -b binary -m aarch64 kernel.bin
+     * ```
+     *
+     * The resulting disassembly should match the assembly emitted in the
+     * [compileTemplate] block. Mismatches are encoder bugs.
+     */
+    fun toHex(): String = buildString {
+        var i = 0
+        while (i < bytes.size) {
+            val end = (i + 4).coerceAtMost(bytes.size)
+            for (j in i until end) {
+                if (j > i) append(' ')
+                append("%02X".format(bytes[j].toInt() and 0xFF))
+            }
+            append('\n')
+            i = end
+        }
+    }
+
+    /**
+     * One contiguous lowercase hex string of the kernel bytes — the form
+     * `xxd -r -p` expects on stdin.
+     */
+    fun toHexCompact(): String = buildString(bytes.size * 2) {
+        for (b in bytes) append("%02x".format(b.toInt() and 0xFF))
+    }
 }
 
 /**

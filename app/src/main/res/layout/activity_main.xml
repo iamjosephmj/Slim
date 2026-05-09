@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0d0f12"
-    android:orientation="vertical">
+    android:background="#0d0f12">
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:text="Slim — live monochrome benchmark"
-        android:textColor="#ffffff"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
+    <!-- Full-screen camera area (drawn under system bars) -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent">
 
         <androidx.camera.view.PreviewView
             android:id="@+id/preview"
@@ -34,47 +24,71 @@
 
     </FrameLayout>
 
-    <LinearLayout
+    <!-- Title (top overlay; padded to clear status bar) -->
+    <TextView
+        android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp">
+        android:layout_gravity="top"
+        android:background="#cc0d0f12"
+        android:padding="12dp"
+        android:text="Slim — live monochrome benchmark"
+        android:textColor="#ffffff"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/kernelToggle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Kernel: invert"
-            android:textAllCaps="false" />
+    <!-- Bottom controls + stats (bottom overlay; padded to clear nav bar) -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#cc0d0f12"
+        android:orientation="vertical">
 
-        <Button
-            android:id="@+id/sourceToggle"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="View: processed"
-            android:textAllCaps="false" />
+            android:orientation="horizontal"
+            android:padding="8dp">
 
-        <Button
-            android:id="@+id/openBench"
-            android:layout_width="0dp"
+            <Button
+                android:id="@+id/kernelToggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Kernel: invert"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/sourceToggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="View: processed"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/openBench"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Static bench"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/stats"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="Static bench"
-            android:textAllCaps="false" />
+            android:fontFamily="monospace"
+            android:padding="12dp"
+            android:textColor="#e8eaed"
+            android:textSize="12sp" />
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/stats"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fontFamily="monospace"
-        android:padding="12dp"
-        android:textColor="#e8eaed"
-        android:textSize="12sp" />
-
-</LinearLayout>
+</FrameLayout>

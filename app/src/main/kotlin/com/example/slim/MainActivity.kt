@@ -6,12 +6,16 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -89,6 +93,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
 
         preview = findViewById(R.id.preview)
@@ -97,6 +102,8 @@ class MainActivity : AppCompatActivity() {
         kernelToggle = findViewById(R.id.kernelToggle)
         sourceToggle = findViewById(R.id.sourceToggle)
         openBench = findViewById(R.id.openBench)
+
+        applyEdgeToEdgeInsets()
 
         kernelToggle.setOnClickListener {
             kernel = when (kernel) {
@@ -123,6 +130,33 @@ class MainActivity : AppCompatActivity() {
             }
             stats.text = "$statusLine\nawaiting camera permission…"
             ensureCameraPermission()
+        }
+    }
+
+    /**
+     * Pad the top of the title and the bottom of the controls bar so they
+     * don't get hidden behind the status / nav bars. The camera FrameLayout
+     * itself stays edge-to-edge, so the preview fills the screen.
+     */
+    private fun applyEdgeToEdgeInsets() {
+        val titleView = findViewById<View>(R.id.title)
+        val bottomBar = findViewById<View>(R.id.bottomBar)
+        val titlePadV = titleView.paddingTop
+        val titlePadH = titleView.paddingLeft
+        val barPadV = bottomBar.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root)) { _, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            titleView.setPadding(
+                titlePadH, bars.top + titlePadV,
+                titlePadH, titleView.paddingBottom,
+            )
+            bottomBar.setPadding(
+                bottomBar.paddingLeft, bottomBar.paddingTop,
+                bottomBar.paddingRight, bars.bottom + barPadV,
+            )
+            insets
         }
     }
 
@@ -208,8 +242,12 @@ class MainActivity : AppCompatActivity() {
             ySlim = Bytes(n)
             scratchScalar = ByteArray(n)
             outPixels = IntArray(n)
-            invertHandle = NativeKt.compileKernel(buildInvertTemplate(n))
-            contrastHandle = NativeKt.compileKernel(buildContrastTemplate(n))
+            val invertTpl = buildInvertTemplate(n)
+            val contrastTpl = buildContrastTemplate(n)
+            dumpKernelOnce("invert", n, invertTpl)
+            dumpKernelOnce("contrast", n, contrastTpl)
+            invertHandle = NativeKt.compileKernel(invertTpl)
+            contrastHandle = NativeKt.compileKernel(contrastTpl)
             compiledForSize = n
         }
         val slim = ySlim!!
@@ -256,20 +294,121 @@ class MainActivity : AppCompatActivity() {
         val slimNs = System.nanoTime() - slimStart
 
         val processedBytes = slim.toByteArray()
-        val mismatch = countMismatches(scalar, processedBytes, sampleSize = 256)
+        val diag = compareDiag(scalar, processedBytes, n)
         val bmp = renderGrayscale(processedBytes, width, height)
 
         timing.add(scalarNs, slimNs)
+        logDiagThrottled(k, n, diag, processedBytes, scalar)
 
         runOnUiThread {
             if (showProcessed) processed.setImageBitmap(bmp)
-            stats.text = formatStats(width, height, mismatch)
+            stats.text = formatStats(width, height, diag)
         }
+    }
+
+    private data class Diag(
+        val sampledMismatches: Int,
+        val totalMismatches: Int,
+        val firstMismatch: Int,
+        val lastMismatch: Int,
+        val firstFiveSamples: String,
+    )
+
+    /**
+     * Walks the whole buffer to count exact mismatches, captures the first
+     * and last index where scalar and NEON disagree, and snapshots the
+     * first 5 sampled (i, scalar, neon) triples.
+     */
+    @Volatile private var lastDiagLogNs: Long = 0L
+
+    /**
+     * Log the diagnostic at most once per second so we don't spam logcat
+     * at 30 fps. Includes a per-quartile mismatch histogram so we can see
+     * exactly where in the buffer the failures are concentrated.
+     */
+    private fun logDiagThrottled(
+        k: Kernel,
+        n: Int,
+        diag: Diag,
+        neon: ByteArray,
+        scalar: ByteArray,
+    ) {
+        if (diag.totalMismatches == 0) return
+        val now = System.nanoTime()
+        if (now - lastDiagLogNs < 1_000_000_000L) return
+        lastDiagLogNs = now
+
+        val q = IntArray(8)
+        val band = max(1, n / 8)
+        for (i in 0 until n) if (scalar[i] != neon[i]) q[(i / band).coerceAtMost(7)]++
+
+        Log.w(
+            DIAG_TAG,
+            "${k.label}  bad=${diag.totalMismatches}/$n " +
+                    "first=${diag.firstMismatch} last=${diag.lastMismatch}  " +
+                    "q=${q.joinToString(",")}"
+        )
+        if (diag.firstFiveSamples.isNotEmpty()) Log.w(DIAG_TAG, "  ${diag.firstFiveSamples}")
+    }
+
+    private fun compareDiag(scalar: ByteArray, neon: ByteArray, n: Int): Diag {
+        var sampled = 0
+        var total = 0
+        var first = -1
+        var last = -1
+        val step = max(1, n / 256)
+        var i = 0
+        while (i < n) { if (scalar[i] != neon[i]) sampled++; i += step }
+        for (k in 0 until n) {
+            if (scalar[k] != neon[k]) {
+                if (first < 0) first = k
+                last = k
+                total++
+            }
+        }
+        val sb = StringBuilder()
+        var shown = 0
+        var p = 0
+        while (p < n && shown < 5) {
+            if (scalar[p] != neon[p]) {
+                if (sb.isNotEmpty()) sb.append("  ")
+                sb.append("[$p s=${scalar[p].toInt() and 0xFF} n=${neon[p].toInt() and 0xFF}]")
+                shown++
+            }
+            p += step
+        }
+        return Diag(sampled, total, first, last, sb.toString())
     }
 
     // ----------------------------------------------------------------
     // Kernel templates — compiled once per frame size
     // ----------------------------------------------------------------
+
+    /**
+     * Print the compiled kernel bytes to logcat once. Tag = "SlimKernel".
+     *
+     * To audit:
+     *
+     *   adb logcat -s SlimKernel:V \
+     *     | awk '/HEX-COMPACT/{getline; print}' \
+     *     | xxd -r -p > /tmp/kernel.bin
+     *   llvm-objdump -D -b binary -m aarch64 /tmp/kernel.bin
+     *
+     * Compare the disassembly against the source order in
+     * [buildInvertTemplate] / [buildContrastTemplate]. Any divergence
+     * (wrong opcode, wrong operands, wrong arrangement) is an encoder
+     * bug; matching disassembly + wrong runtime output points at the
+     * engine.
+     */
+    private fun dumpKernelOnce(name: String, n: Int, t: KernelTemplate) {
+        Log.i(KERNEL_TAG, "── $name kernel  size=${t.size}B  n=$n ───────────────")
+        for ((i, line) in t.toHex().lines().withIndex()) {
+            if (line.isBlank()) continue
+            Log.i(KERNEL_TAG, "  +0x%03x  %s".format(i * 4, line))
+        }
+        Log.i(KERNEL_TAG, "$name HEX-COMPACT (paste to xxd -r -p):")
+        Log.i(KERNEL_TAG, t.toHexCompact())
+    }
 
     private fun buildInvertTemplate(n: Int): KernelTemplate = compileTemplate {
         // x0 = data ptr (auto-prologue inside compileTemplate handles this)
@@ -294,14 +433,17 @@ class MainActivity : AppCompatActivity() {
         placeholderDataPtr()
         add(Arm64.loadImm32(Arm64.W3, n))
         add(Arm64.mov(Arm64.X1, Arm64.X0))
-        add(Arm64.movz(Arm64.W4, 128))
-        add(Arm64.dup(Arm64.V1, Arm64.X4, Arm64.VArr.B16))   // v1 = 128 × 16
+        add(Arm64.movz(Arm64.W4, 64))
+        add(Arm64.dup(Arm64.V1, Arm64.X4, Arm64.VArr.B16))   // v1 = 64 × 16
 
         val loop = bindLabel()
         add(Arm64.ld1(Arm64.V0, Arm64.X1, Arm64.VArr.B16))
-        // y' = clamp(2*y - 128, 0, 255), saturating byte arithmetic
-        add(Arm64.uqadd(Arm64.V0, Arm64.V0, Arm64.V0, Arm64.VArr.B16))   // 2y, saturating
-        add(Arm64.uqsub(Arm64.V0, Arm64.V0, Arm64.V1, Arm64.VArr.B16))   // -128, saturating
+        // y' = clamp(2*y - 128, 0, 255) = clamp(2*max(y-64, 0), 0, 255)
+        // Subtract first, then double — order matters: doubling first
+        // would saturate 2y to 255 before the subtraction, pinning bright
+        // pixels to 127.
+        add(Arm64.uqsub(Arm64.V0, Arm64.V0, Arm64.V1, Arm64.VArr.B16))   // max(y - 64, 0)
+        add(Arm64.uqadd(Arm64.V0, Arm64.V0, Arm64.V0, Arm64.VArr.B16))   // min(2*prev, 255)
         add(Arm64.st1(Arm64.V0, Arm64.X1, Arm64.VArr.B16))
         add(Arm64.addImm(Arm64.X1, Arm64.X1, 16))
         add(Arm64.subImm(Arm64.W3, Arm64.W3, 16))
@@ -325,14 +467,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun countMismatches(a: ByteArray, b: ByteArray, sampleSize: Int): Int {
-        var bad = 0
-        val step = max(1, a.size / sampleSize)
-        var i = 0
-        while (i < a.size) { if (a[i] != b[i]) bad++; i += step }
-        return bad
-    }
-
     // ----------------------------------------------------------------
     // Rendering
     // ----------------------------------------------------------------
@@ -353,7 +487,7 @@ class MainActivity : AppCompatActivity() {
     // Stats
     // ----------------------------------------------------------------
 
-    private fun formatStats(w: Int, h: Int, mismatch: Int): String {
+    private fun formatStats(w: Int, h: Int, diag: Diag): String {
         val pixels = w * h
         val (scalarMs, slimMs, fps) = timing.snapshot()
         val mb = pixels / (1024.0 * 1024.0)
@@ -367,7 +501,13 @@ class MainActivity : AppCompatActivity() {
             appendLine("slim handle    ${"%6.2f".format(slimMs)} ms  (${"%.0f".format(sSlim)} MB/s)")
             appendLine()
             append("speedup        ${"%5.2fx".format(speedup)}")
-            if (mismatch > 0) append("   ⚠ $mismatch / 256 mismatches")
+            if (diag.totalMismatches > 0) {
+                appendLine()
+                appendLine()
+                appendLine("⚠ mismatches: ${diag.totalMismatches} / $pixels  (sampled ${diag.sampledMismatches} / 256)")
+                appendLine("first=${diag.firstMismatch}  last=${diag.lastMismatch}")
+                if (diag.firstFiveSamples.isNotEmpty()) append(diag.firstFiveSamples)
+            }
         }
     }
 
@@ -409,5 +549,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    companion object { private const val TAG = "Slim" }
+    companion object {
+        private const val TAG = "Slim"
+        private const val KERNEL_TAG = "SlimKernel"
+        private const val DIAG_TAG = "SlimDiag"
+    }
 }

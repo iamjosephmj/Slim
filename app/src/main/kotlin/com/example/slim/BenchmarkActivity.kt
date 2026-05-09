@@ -9,6 +9,9 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import io.simdkt.slim.Floats
 import io.simdkt.slim.Slim
@@ -51,6 +54,7 @@ class BenchmarkActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_benchmark)
 
         statusText = findViewById(R.id.status)
@@ -58,6 +62,24 @@ class BenchmarkActivity : AppCompatActivity() {
         procImage = findViewById(R.id.procImage)
         resultsText = findViewById(R.id.resultsText)
         runButton = findViewById(R.id.runButton)
+
+        val content = findViewById<android.view.View>(R.id.content)
+        val basePadL = content.paddingLeft
+        val basePadT = content.paddingTop
+        val basePadR = content.paddingRight
+        val basePadB = content.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(
+                basePadL + bars.left,
+                basePadT + bars.top,
+                basePadR + bars.right,
+                basePadB + bars.bottom,
+            )
+            insets
+        }
 
         runButton.isEnabled = false
         runButton.setOnClickListener { runBenchmark() }
