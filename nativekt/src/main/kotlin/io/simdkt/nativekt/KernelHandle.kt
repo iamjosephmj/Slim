@@ -139,6 +139,20 @@ class KernelHandle internal constructor(
     }
 
     /**
+     * Synchronous zero-copy dispatch against a [io.simdkt.slim.Floats].
+     * No coroutine machinery, no thread hops — runs on the calling
+     * thread. Use for hot-path kernels where you've already decided
+     * which thread you want.
+     */
+    fun run(data: io.simdkt.slim.Floats): Boolean = run(data.buf)
+
+    /** Synchronous zero-copy dispatch against an [io.simdkt.slim.Ints]. */
+    fun run(data: io.simdkt.slim.Ints): Boolean = run(data.buf)
+
+    /** Synchronous zero-copy dispatch against a [io.simdkt.slim.Bytes]. */
+    fun run(data: io.simdkt.slim.Bytes): Boolean = run(data.buf)
+
+    /**
      * Free the underlying memfd region. Idempotent; calling [close]
      * twice is a no-op. Subsequent [run] calls throw.
      *

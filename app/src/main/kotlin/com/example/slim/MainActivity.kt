@@ -1,300 +1,412 @@
 package com.example.slim
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import io.simdkt.slim.Floats
+import io.simdkt.nativekt.KernelHandle
+import io.simdkt.nativekt.KernelTemplate
+import io.simdkt.nativekt.NativeKt
+import io.simdkt.nativekt.compileTemplate
+import io.simdkt.nativekt.engine.Arm64
+import io.simdkt.slim.Bytes
 import io.simdkt.slim.Slim
-import io.simdkt.slim.slim
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
 import kotlin.math.max
-import kotlin.math.min
 
 /**
- * Bitmap-manipulation benchmark using the high-level [Slim] API.
+ * Live camera benchmark.
  *
- * The user-facing surface is two things:
- *   - [Slim.initialize] — once at app startup.
- *   - [slim] — a suspend function whose body is the NEON kernel.
+ * Pipes 30 fps `YUV_420_888` frames from CameraX through a NEON kernel
+ * via the Slim runtime, side-by-side with a Kotlin scalar reference.
  *
- * No `ByteBuffer`, no `placeholderDataPtr`, no `Arm64.X0` qualifiers, no
- * trailing `ret` — the engine handles all of that.
+ * Two kernels:
+ *   - **invert**:   y' = 255 - y                      (photo negative)
+ *   - **contrast**: y' = clamp(2·y - 128, 0, 255)     (high-contrast mono)
+ *
+ * Both are byte-lane SIMD (`.16b`) — 16 pixels per loop iteration.
+ *
+ * **Performance note**: the camera analyzer runs on a dedicated worker
+ * thread, ~30 calls/sec. We use the lower-level `NativeKt.compileKernel`
+ * + `KernelHandle.run` API rather than the high-level `slim {}` because:
+ *   1. The kernel is the same every frame — compile once, dispatch many.
+ *   2. `slim {}` defaults to `Dispatchers.Default` and would thread-hop
+ *      twice per call, costing ~200-500 µs we don't want.
+ *
+ * That's the SDK design intent: `slim {}` for one-shot ergonomic calls,
+ * `KernelHandle` for hot paths where you control the thread.
  */
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var statusText: TextView
-    private lateinit var origImage: ImageView
-    private lateinit var procImage: ImageView
-    private lateinit var resultsText: TextView
-    private lateinit var runButton: Button
+    private lateinit var preview: PreviewView
+    private lateinit var processed: ImageView
+    private lateinit var stats: TextView
+    private lateinit var kernelToggle: Button
+    private lateinit var sourceToggle: Button
+    private lateinit var openBench: Button
 
-    private val imageSize = 1024
-    private val pixelCount = imageSize * imageSize
-    private val floatCount = pixelCount * 4 // RGBA
+    private val analyzerExecutor = Executors.newSingleThreadExecutor()
+    private var cameraProvider: ProcessCameraProvider? = null
 
-    private val a = 0.5f
-    private val b = 0.0f
+    @Volatile
+    private var kernel: Kernel = Kernel.Invert
 
-    private lateinit var bitmap: Bitmap
+    @Volatile
+    private var showProcessed: Boolean = true
+
+    private val timing = TimingAccumulator()
+
+    /** Compiled-once kernels, keyed by frame size. */
+    private var invertHandle: KernelHandle? = null
+    private var contrastHandle: KernelHandle? = null
+    private var compiledForSize: Int = 0
+
+    private val requestPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) startCamera() else stats.text = "Camera permission denied."
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusText = findViewById(R.id.status)
-        origImage = findViewById(R.id.origImage)
-        procImage = findViewById(R.id.procImage)
-        resultsText = findViewById(R.id.resultsText)
-        runButton = findViewById(R.id.runButton)
+        preview = findViewById(R.id.preview)
+        processed = findViewById(R.id.processed)
+        stats = findViewById(R.id.stats)
+        kernelToggle = findViewById(R.id.kernelToggle)
+        sourceToggle = findViewById(R.id.sourceToggle)
+        openBench = findViewById(R.id.openBench)
 
-        runButton.isEnabled = false
-        runButton.setOnClickListener { runBenchmark() }
+        kernelToggle.setOnClickListener {
+            kernel = when (kernel) {
+                Kernel.Invert -> Kernel.Contrast
+                Kernel.Contrast -> Kernel.Invert
+            }
+            kernelToggle.text = "Kernel: ${kernel.label}"
+            timing.reset()
+        }
+        sourceToggle.setOnClickListener {
+            showProcessed = !showProcessed
+            sourceToggle.text = "View: ${if (showProcessed) "processed" else "preview"}"
+            processed.visibility = if (showProcessed) View.VISIBLE else View.GONE
+        }
+        openBench.setOnClickListener {
+            startActivity(Intent(this, BenchmarkActivity::class.java))
+        }
 
-        statusText.text = "init: …"
-
+        stats.text = "init: …"
         lifecycleScope.launch {
-            val (statusLine, originalBmp) = withContext(Dispatchers.Default) {
+            val statusLine = withContext(Dispatchers.Default) {
                 val ok = Slim.initialize(this@MainActivity)
-                val s = if (ok) "init: ok" else "init: FAILED — ${Slim.lastError ?: "(unknown)"}"
-                val bmp = makeGradientBitmap(imageSize)
-                s to bmp
+                if (ok) "init: ok" else "init: FAILED — ${Slim.lastError ?: "(unknown)"}"
             }
-            bitmap = originalBmp
-            statusText.text = "$statusLine\n" +
-                    "buffer: ${imageSize}×${imageSize} RGBA = $floatCount floats (${floatCount * 4 / 1024} KB)\n" +
-                    "kernel: y[i] = ${a} · x[i] + ${b}"
-            origImage.setImageBitmap(originalBmp)
-            runButton.isEnabled = Slim.isReady
+            stats.text = "$statusLine\nawaiting camera permission…"
+            ensureCameraPermission()
         }
     }
 
-    // ------------------------------------------------------------------
-    // The kernel — operates on a FloatArray directly.
-    // ------------------------------------------------------------------
-
-    private suspend fun brightenWithSlim(data: Floats): Boolean {
-        val aBits = java.lang.Float.floatToRawIntBits(a)
-        val bBits = java.lang.Float.floatToRawIntBits(b)
-        val n = data.size
-        return slim(data) {
-            // x0 holds the buffer's address (auto-prologue).
-            loadImm32(W4, aBits)
-            dup(V0, X4, S4)            // v0 = a × 4 (broadcast)
-            loadImm32(W4, bBits)
-            dup(V1, X4, S4)            // v1 = b × 4
-            loadImm32(W3, n)           // w3 = element count
-            mov(X1, X0)                // x1 walks the buffer
-
-            val loop = bindLabel()
-            ld1(V2, X1, S4)
-            fmul(V2, V2, V0, S4)       // v2 *= a
-            fadd(V2, V2, V1, S4)       // v2 += b
-            st1(V2, X1, S4)
-            add(X1, X1, 16)            // advance 4 floats
-            sub(W3, W3, 4)
-            cbnz(W3, loop)
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        analyzerExecutor.shutdown()
+        cameraProvider?.unbindAll()
+        invertHandle?.close()
+        contrastHandle?.close()
     }
 
-    // ------------------------------------------------------------------
-    // Benchmark
-    // ------------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // Camera setup
+    // ----------------------------------------------------------------
 
-    private fun runBenchmark() {
-        runButton.isEnabled = false
-        resultsText.text = "Running benchmark…"
-        lifecycleScope.launch {
-            val (report, outBmp) = withContext(Dispatchers.Default) {
-                try {
-                    doBenchmark()
-                } catch (t: Throwable) {
-                    Log.e(TAG, "benchmark failed", t)
-                    "FAILED: ${t::class.java.simpleName}: ${t.message}" to null
-                }
-            }
-            outBmp?.let { procImage.setImageBitmap(it) }
-            resultsText.text = report
-            runButton.isEnabled = true
-        }
+    private fun ensureCameraPermission() {
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        if (granted) startCamera() else requestPermission.launch(Manifest.permission.CAMERA)
     }
 
-    private suspend fun doBenchmark(): Pair<String, Bitmap?> {
-        val warmups = 3
-        val iters = 10
-
-        val original = bitmapToFloats(bitmap)
-        val n = original.size
-
-        val scalarOut = FloatArray(n)
-        val slimData = Floats(original)            // direct-buffer-backed, zero-copy
-
-        repeat(warmups) {
-            brightenScalar(original, scalarOut, a, b)
-            slimData.loadFrom(original)
-            brightenWithSlim(slimData)
-        }
-
-        var kotlinNs = Long.MAX_VALUE
-        repeat(iters) {
-            val start = System.nanoTime()
-            brightenScalar(original, scalarOut, a, b)
-            kotlinNs = min(kotlinNs, System.nanoTime() - start)
-        }
-
-        var slimNs = Long.MAX_VALUE
-        repeat(iters) {
-            slimData.loadFrom(original)            // reset (still cheaper than full copy-in/out)
-            val start = System.nanoTime()
-            brightenWithSlim(slimData)
-            slimNs = min(slimNs, System.nanoTime() - start)
-        }
-
-        for (j in 0 until 1024) {
-            if (kotlin.math.abs(scalarOut[j] - slimData[j]) > 1e-6f) {
-                return "MISMATCH @ $j: kotlin=${scalarOut[j]} slim=${slimData[j]}" to null
-            }
-        }
-
-        val kotlinMs = kotlinNs / 1_000_000.0
-        val slimMs = slimNs / 1_000_000.0
-        val mb = (n * 4) / (1024.0 * 1024.0)
-        val speedup = kotlinMs / max(slimMs, 1e-9)
-        val concurrentReport = runConcurrentSlimTest()
-        val outBmp = floatsToBitmap(slimData.toFloatArray(), imageSize, imageSize)
-
-        val report = buildString {
-            appendLine("buffer:    ${imageSize}×${imageSize} RGBA  (${"%.1f".format(mb)} MB)")
-            appendLine("kernel:    y[i] = ${a} · x[i] + ${b}   (in-place)")
-            appendLine("warmup:    $warmups iters     samples: $iters")
-            appendLine()
-            appendLine("Kotlin scalar  ${"%7.2f".format(kotlinMs)} ms   (${"%.0f".format(mb / (kotlinMs / 1000.0))} MB/s)")
-            appendLine("slim { }       ${"%7.2f".format(slimMs)} ms   (${"%.0f".format(mb / (slimMs / 1000.0))} MB/s)")
-            appendLine()
-            appendLine("speedup        ${"%5.2fx".format(speedup)}    (Floats — zero-copy on the kernel)")
-            appendLine()
-            appendLine(concurrentReport)
-        }
-        return report to outBmp
+    private fun startCamera() {
+        val future = ProcessCameraProvider.getInstance(this)
+        future.addListener({
+            cameraProvider = future.get()
+            bindUseCases()
+        }, ContextCompat.getMainExecutor(this))
     }
 
-    private suspend fun runConcurrentSlimTest(): String {
-        val workers = 4
-        val callsPerWorker = 50
-        val n = 256
-        val errors = java.util.concurrent.atomic.AtomicInteger(0)
-        val nBits = n
-        val aBits = java.lang.Float.floatToRawIntBits(a)
-        val bBits = java.lang.Float.floatToRawIntBits(b)
+    private fun bindUseCases() {
+        val provider = cameraProvider ?: return
+        val resolution = ResolutionSelector.Builder()
+            .setResolutionStrategy(
+                ResolutionStrategy(
+                    android.util.Size(640, 480),
+                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                )
+            ).build()
 
-        suspend fun runOne(buf: Floats): Boolean = slim(buf) {
-            loadImm32(W4, aBits)
-            dup(V0, X4, S4)
-            loadImm32(W4, bBits)
-            dup(V1, X4, S4)
-            loadImm32(W3, nBits)
-            mov(X1, X0)
-            val loop = bindLabel()
-            ld1(V2, X1, S4)
-            fmul(V2, V2, V0, S4)
-            fadd(V2, V2, V1, S4)
-            st1(V2, X1, S4)
-            add(X1, X1, 16)
-            sub(W3, W3, 4)
-            cbnz(W3, loop)
-        }
+        val previewUseCase = Preview.Builder()
+            .setResolutionSelector(resolution)
+            .build()
+            .also { it.surfaceProvider = preview.surfaceProvider }
 
-        val start = System.nanoTime()
-        coroutineScope {
-            repeat(workers) { tid ->
-                launch(Dispatchers.Default) {
-                    val arr = Floats(n)
-                    repeat(callsPerWorker) { call ->
-                        val seed = (tid * 1000 + call).toFloat()
-                        arr.fill { i -> seed + i }
-                        if (!runOne(arr)) errors.incrementAndGet()
-                        for (i in 0 until n) {
-                            val expected = a * (seed + i) + b
-                            if (kotlin.math.abs(arr[i] - expected) > 1e-4f) {
-                                errors.incrementAndGet()
-                                return@repeat
-                            }
-                        }
-                    }
-                }
-            }
+        val analyzerUseCase = ImageAnalysis.Builder()
+            .setResolutionSelector(resolution)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+            .build()
+            .also { it.setAnalyzer(analyzerExecutor, ::analyze) }
+
+        provider.unbindAll()
+        provider.bindToLifecycle(
+            this,
+            CameraSelector.DEFAULT_BACK_CAMERA,
+            previewUseCase,
+            analyzerUseCase,
+        )
+    }
+
+    // ----------------------------------------------------------------
+    // Per-frame processing — runs on analyzerExecutor's thread
+    // ----------------------------------------------------------------
+
+    private var ySlim: Bytes? = null
+    private var scratchScalar: ByteArray? = null
+    private var outBmp: Bitmap? = null
+    private var outPixels: IntArray? = null
+
+    private fun analyze(image: ImageProxy) {
+        val frame = image.planes[0]
+        val width = image.width
+        val height = image.height
+        val rowStride = frame.rowStride
+        val pixelStride = frame.pixelStride
+
+        val n = width * height
+        // Lazy allocate buffers + compile kernels at the first frame's size.
+        if (n != compiledForSize) {
+            ySlim?.let { /* swap out */ }
+            invertHandle?.close()
+            contrastHandle?.close()
+            ySlim = Bytes(n)
+            scratchScalar = ByteArray(n)
+            outPixels = IntArray(n)
+            invertHandle = NativeKt.compileKernel(buildInvertTemplate(n))
+            contrastHandle = NativeKt.compileKernel(buildContrastTemplate(n))
+            compiledForSize = n
         }
-        val elapsedMs = (System.nanoTime() - start) / 1_000_000.0
-        val total = workers * callsPerWorker
-        return if (errors.get() == 0) {
-            "concurrency: $workers × $callsPerWorker slim {} calls   ok " +
-                    "(${"%.1f".format(elapsedMs)} ms, ${"%.0f".format(total / (elapsedMs / 1000.0))} calls/s)"
+        val slim = ySlim!!
+        val scalar = scratchScalar!!
+
+        // Copy Y plane out of the camera frame. Most cameras produce
+        // tightly-packed Y (rowStride == width, pixelStride == 1).
+        val src = frame.buffer
+        if (rowStride == width && pixelStride == 1) {
+            val packed = ByteArray(n)
+            src.position(0)
+            src.get(packed, 0, n)
+            slim.loadFrom(packed)
+            System.arraycopy(packed, 0, scalar, 0, n)
         } else {
-            "concurrency: FAILED (${errors.get()} errors)"
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // Bitmap <-> FloatArray
-    // ------------------------------------------------------------------
-
-    private fun makeGradientBitmap(size: Int): Bitmap {
-        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val pixels = IntArray(size * size)
-        for (y in 0 until size) {
-            val gFrac = y.toFloat() / (size - 1)
-            for (x in 0 until size) {
-                val rFrac = x.toFloat() / (size - 1)
-                val r = (rFrac * 255f).toInt()
-                val g = (gFrac * 255f).toInt()
-                val bb = ((1f - rFrac * 0.5f - gFrac * 0.5f).coerceIn(0f, 1f) * 255f).toInt()
-                pixels[y * size + x] = Color.argb(255, r, g, bb)
+            val row = ByteArray(width)
+            for (y in 0 until height) {
+                src.position(y * rowStride)
+                if (pixelStride == 1) src.get(row, 0, width)
+                else for (x in 0 until width) {
+                    row[x] = src.get(y * rowStride + x * pixelStride)
+                }
+                System.arraycopy(row, 0, scalar, y * width, width)
             }
+            slim.loadFrom(scalar)
         }
-        bmp.setPixels(pixels, 0, size, 0, 0, size, size)
-        return bmp
+        image.close()
+
+        val k = kernel
+
+        val scalarStart = System.nanoTime()
+        when (k) {
+            Kernel.Invert -> invertScalar(scalar, n)
+            Kernel.Contrast -> contrastScalar(scalar, n)
+        }
+        val scalarNs = System.nanoTime() - scalarStart
+
+        val handle = when (k) {
+            Kernel.Invert -> invertHandle!!
+            Kernel.Contrast -> contrastHandle!!
+        }
+        val slimStart = System.nanoTime()
+        handle.run(slim)
+        val slimNs = System.nanoTime() - slimStart
+
+        val processedBytes = slim.toByteArray()
+        val mismatch = countMismatches(scalar, processedBytes, sampleSize = 256)
+        val bmp = renderGrayscale(processedBytes, width, height)
+
+        timing.add(scalarNs, slimNs)
+
+        runOnUiThread {
+            if (showProcessed) processed.setImageBitmap(bmp)
+            stats.text = formatStats(width, height, mismatch)
+        }
     }
 
-    private fun bitmapToFloats(bmp: Bitmap): FloatArray {
-        val w = bmp.width; val h = bmp.height
-        val pixels = IntArray(w * h)
-        bmp.getPixels(pixels, 0, w, 0, 0, w, h)
-        val out = FloatArray(w * h * 4)
-        var dst = 0
-        for (p in pixels) {
-            out[dst++] = ((p ushr 16) and 0xFF) / 255f
-            out[dst++] = ((p ushr 8) and 0xFF) / 255f
-            out[dst++] = (p and 0xFF) / 255f
-            out[dst++] = ((p ushr 24) and 0xFF) / 255f
-        }
-        return out
+    // ----------------------------------------------------------------
+    // Kernel templates — compiled once per frame size
+    // ----------------------------------------------------------------
+
+    private fun buildInvertTemplate(n: Int): KernelTemplate = compileTemplate {
+        // x0 = data ptr (auto-prologue inside compileTemplate handles this)
+        placeholderDataPtr()
+        add(Arm64.loadImm32(Arm64.W3, n))                // count
+        add(Arm64.mov(Arm64.X1, Arm64.X0))               // walking ptr
+        add(Arm64.movz(Arm64.W4, 0xFF))
+        add(Arm64.dup(Arm64.V1, Arm64.X4, Arm64.VArr.B16))   // v1 = 0xFF × 16
+
+        val loop = bindLabel()
+        add(Arm64.ld1(Arm64.V0, Arm64.X1, Arm64.VArr.B16))   // load 16 bytes
+        add(Arm64.subVec(Arm64.V0, Arm64.V1, Arm64.V0, Arm64.VArr.B16)) // v0 = 255 - v0
+        add(Arm64.st1(Arm64.V0, Arm64.X1, Arm64.VArr.B16))   // store
+        add(Arm64.addImm(Arm64.X1, Arm64.X1, 16))
+        add(Arm64.subImm(Arm64.W3, Arm64.W3, 16))
+        cbnz(Arm64.W3, loop)
+
+        add(Arm64.ret())
     }
 
-    private fun floatsToBitmap(data: FloatArray, w: Int, h: Int): Bitmap {
-        val pixels = IntArray(w * h)
-        var src = 0
+    private fun buildContrastTemplate(n: Int): KernelTemplate = compileTemplate {
+        placeholderDataPtr()
+        add(Arm64.loadImm32(Arm64.W3, n))
+        add(Arm64.mov(Arm64.X1, Arm64.X0))
+        add(Arm64.movz(Arm64.W4, 128))
+        add(Arm64.dup(Arm64.V1, Arm64.X4, Arm64.VArr.B16))   // v1 = 128 × 16
+
+        val loop = bindLabel()
+        add(Arm64.ld1(Arm64.V0, Arm64.X1, Arm64.VArr.B16))
+        // y' = clamp(2*y - 128, 0, 255), saturating byte arithmetic
+        add(Arm64.uqadd(Arm64.V0, Arm64.V0, Arm64.V0, Arm64.VArr.B16))   // 2y, saturating
+        add(Arm64.uqsub(Arm64.V0, Arm64.V0, Arm64.V1, Arm64.VArr.B16))   // -128, saturating
+        add(Arm64.st1(Arm64.V0, Arm64.X1, Arm64.VArr.B16))
+        add(Arm64.addImm(Arm64.X1, Arm64.X1, 16))
+        add(Arm64.subImm(Arm64.W3, Arm64.W3, 16))
+        cbnz(Arm64.W3, loop)
+
+        add(Arm64.ret())
+    }
+
+    // ----------------------------------------------------------------
+    // Scalar references
+    // ----------------------------------------------------------------
+
+    private fun invertScalar(buf: ByteArray, n: Int) {
+        for (i in 0 until n) buf[i] = (255 - (buf[i].toInt() and 0xFF)).toByte()
+    }
+
+    private fun contrastScalar(buf: ByteArray, n: Int) {
+        for (i in 0 until n) {
+            val y = buf[i].toInt() and 0xFF
+            buf[i] = ((y * 2 - 128).coerceIn(0, 255)).toByte()
+        }
+    }
+
+    private fun countMismatches(a: ByteArray, b: ByteArray, sampleSize: Int): Int {
+        var bad = 0
+        val step = max(1, a.size / sampleSize)
+        var i = 0
+        while (i < a.size) { if (a[i] != b[i]) bad++; i += step }
+        return bad
+    }
+
+    // ----------------------------------------------------------------
+    // Rendering
+    // ----------------------------------------------------------------
+
+    private fun renderGrayscale(y: ByteArray, w: Int, h: Int): Bitmap {
+        val bmp = outBmp?.takeIf { it.width == w && it.height == h }
+            ?: Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { outBmp = it }
+        val pixels = outPixels!!
         for (i in pixels.indices) {
-            val r = (data[src++] * 255f).toInt().coerceIn(0, 255)
-            val g = (data[src++] * 255f).toInt().coerceIn(0, 255)
-            val bb = (data[src++] * 255f).toInt().coerceIn(0, 255)
-            val a = (data[src++] * 255f).toInt().coerceIn(0, 255)
-            pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or bb
+            val v = y[i].toInt() and 0xFF
+            pixels[i] = Color.argb(255, v, v, v)
         }
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         bmp.setPixels(pixels, 0, w, 0, 0, w, h)
         return bmp
     }
 
-    private fun brightenScalar(input: FloatArray, output: FloatArray, a: Float, b: Float) {
-        for (i in input.indices) output[i] = a * input[i] + b
+    // ----------------------------------------------------------------
+    // Stats
+    // ----------------------------------------------------------------
+
+    private fun formatStats(w: Int, h: Int, mismatch: Int): String {
+        val pixels = w * h
+        val (scalarMs, slimMs, fps) = timing.snapshot()
+        val mb = pixels / (1024.0 * 1024.0)
+        val sScalar = mb / (scalarMs / 1000.0)
+        val sSlim = mb / max(slimMs / 1000.0, 1e-9)
+        val speedup = scalarMs / max(slimMs, 1e-9)
+        return buildString {
+            appendLine("init: ok | ${kernel.label} | ${w}×${h} (${pixels / 1000} K px) | ${"%.1f".format(fps)} fps")
+            appendLine()
+            appendLine("Kotlin scalar  ${"%6.2f".format(scalarMs)} ms  (${"%.0f".format(sScalar)} MB/s)")
+            appendLine("slim handle    ${"%6.2f".format(slimMs)} ms  (${"%.0f".format(sSlim)} MB/s)")
+            appendLine()
+            append("speedup        ${"%5.2fx".format(speedup)}")
+            if (mismatch > 0) append("   ⚠ $mismatch / 256 mismatches")
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------
+
+    enum class Kernel(val label: String) {
+        Invert("invert"),
+        Contrast("contrast"),
+    }
+
+    private class TimingAccumulator {
+        @Volatile private var scalarMsEMA = 0.0
+        @Volatile private var slimMsEMA = 0.0
+        @Volatile private var fpsEMA = 0.0
+        @Volatile private var lastTickNs = 0L
+
+        @Synchronized
+        fun add(scalarNs: Long, slimNs: Long) {
+            val scalarMs = scalarNs / 1_000_000.0
+            val slimMs = slimNs / 1_000_000.0
+            val now = System.nanoTime()
+            val dt = if (lastTickNs == 0L) 0.033 else (now - lastTickNs) / 1e9
+            lastTickNs = now
+            val instantFps = if (dt > 0.0) 1.0 / dt else 0.0
+            val a = 0.15
+            scalarMsEMA = if (scalarMsEMA == 0.0) scalarMs else (1 - a) * scalarMsEMA + a * scalarMs
+            slimMsEMA = if (slimMsEMA == 0.0) slimMs else (1 - a) * slimMsEMA + a * slimMs
+            fpsEMA = if (fpsEMA == 0.0) instantFps else (1 - a) * fpsEMA + a * instantFps
+        }
+
+        @Synchronized
+        fun snapshot(): Triple<Double, Double, Double> = Triple(scalarMsEMA, slimMsEMA, fpsEMA)
+
+        @Synchronized
+        fun reset() {
+            scalarMsEMA = 0.0; slimMsEMA = 0.0; fpsEMA = 0.0; lastTickNs = 0L
+        }
     }
 
     companion object { private const val TAG = "Slim" }
