@@ -31,6 +31,8 @@ theme:
     - navigation.indexes
     - navigation.top
     - navigation.tracking
+    - navigation.footer
+    - navigation.path
     - toc.follow
     - search.suggest
     - search.highlight
@@ -89,6 +91,9 @@ markdown_extensions:
 
 plugins:
   - search
+
+extra_css:
+  - stylesheets/extra.css
 
 extra:
   social:

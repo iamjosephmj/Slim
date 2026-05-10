@@ -1,0 +1,33 @@
+/* Widen the content area on large screens.
+   Material's default --md-grid-max-width is 1220px; we bump to 1440. */
+.md-grid {
+  max-width: 1440px;
+}
+
+/* Slightly wider content column relative to nav + TOC.
+   On screens > 76.25em Material uses a 3-column grid; this nudges
+   the typography column a bit. */
+@media screen and (min-width: 76.25em) {
+  .md-main__inner {
+    margin-top: 1rem;
+  }
+}
+
+/* Subtle: heavier code-block separation so kernels feel set apart */
+.md-typeset pre > code {
+  border-radius: 6px;
+}
+
+/* Make the Material "navigation.footer" prev/next chips a bit more
+   visually distinct so they read as obvious navigation, not decoration. */
+.md-footer__inner {
+  padding: 1rem 0.8rem;
+}
+.md-footer__link {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  transition: background-color 120ms;
+}
+.md-footer__link:hover {
+  background-color: var(--md-default-fg-color--lightest);
+}
