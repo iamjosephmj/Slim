@@ -87,6 +87,9 @@ markdown_extensions:
 
 plugins:
   - search
+  - redirects:
+      redirect_maps:
+        guide/introduction.md: guide/index.md
 
 extra_css:
   - stylesheets/extra.css

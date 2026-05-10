@@ -1,8 +1,9 @@
 /* ==========================================================================
-   Slim — arcade-cabinet theme overlay on top of Material
-   Press Start 2P for major headings, Tetris piece palette for admonitions,
-   neon glow on interactive elements, CRT-style code blocks, dark slate base.
-   Body type stays Inter / JetBrains Mono for readability.
+   Slim — dual-theme stylesheet:
+     dark (slate)   = full arcade-cabinet aesthetic, neon palette, glow
+     light (default) = professional Material-style, deep purple + teal accents
+   Typography (Press Start 2P for h1/h2/h3) applies to both schemes;
+   colors and glow effects are scheme-scoped.
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -10,20 +11,30 @@
 /* --- Brand palette ------------------------------------------------------- */
 
 :root {
+  /* Dark-scheme neon palette (Tetris pieces) */
   --tetris-cyan:    #00FFFF;
   --tetris-yellow:  #FFD600;
   --tetris-purple:  #FF40FF;
   --tetris-green:   #00FF66;
   --tetris-red:     #FF3366;
   --tetris-orange:  #FF9933;
-  --tetris-blue:    #4488FF;
 
   --arcade-bg:       #0A0118;
   --arcade-bg-alt:   #15012E;
   --arcade-bg-card:  #1F0541;
+
+  /* Light-scheme accessible palette */
+  --slim-purple:     #4A148C;     /* deep purple, primary brand on white */
+  --slim-purple-2:   #6A1B9A;
+  --slim-teal:       #00695C;     /* deep teal, accent on white */
+  --slim-gold:       #B8860B;     /* dark goldenrod (vs neon yellow) */
+  --slim-magenta:    #880E4F;     /* deep pink (vs neon magenta) */
+  --slim-orange:     #BF360C;     /* dark deep orange */
+  --slim-green:      #2E7D32;     /* dark green for inline code */
 }
 
-/* Dark / "arcade" scheme overrides --------------------------------------- */
+/* --- Scheme-specific Material variable overrides ------------------------ */
+
 [data-md-color-scheme="slate"] {
   --md-default-bg-color:        var(--arcade-bg);
   --md-default-bg-color--light: var(--arcade-bg-alt);
@@ -44,19 +55,19 @@
   --md-footer-bg-color--dark:   var(--arcade-bg);
 }
 
-/* Light scheme — softer arcade palette, daylight mode */
 [data-md-color-scheme="default"] {
-  --md-primary-fg-color:        #6A1B9A;     /* deep purple */
-  --md-accent-fg-color:         #00838F;     /* teal cyan */
+  --md-primary-fg-color:        var(--slim-purple);
+  --md-accent-fg-color:         var(--slim-teal);
+  --md-typeset-a-color:         var(--slim-teal);
 }
 
-/* --- Wider content column on big screens --------------------------------- */
+/* --- Wider content column on big screens (both schemes) ----------------- */
 
 .md-grid {
   max-width: 1440px;
 }
 
-/* --- Major headings: Press Start 2P, modest sizing ----------------------- */
+/* --- Major-heading typography (BOTH schemes) ---------------------------- */
 
 .md-typeset h1,
 .md-typeset h2,
@@ -66,59 +77,47 @@
   line-height: 1.5;
 }
 
-.md-typeset h1 {
-  font-size: 1.55rem;
-  font-weight: 400;
-  color: var(--tetris-cyan);
-  margin-top: 1.5em;
-  margin-bottom: 1em;
-}
-
-[data-md-color-scheme="slate"] .md-typeset h1 {
-  text-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
-}
-
-.md-typeset h2 {
-  font-size: 1.05rem;
-  font-weight: 400;
-  color: var(--tetris-yellow);
-  border-bottom: 1px solid rgba(255, 214, 0, 0.25);
-  padding-bottom: 0.5em;
-  margin-top: 2.5em;
-}
-
-.md-typeset h3 {
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--tetris-purple);
-  margin-top: 1.8em;
-}
+.md-typeset h1 { font-size: 1.55rem; font-weight: 400; margin-top: 1.5em; margin-bottom: 1em; }
+.md-typeset h2 { font-size: 1.05rem; font-weight: 400; padding-bottom: 0.5em; margin-top: 2.5em; }
+.md-typeset h3 { font-size: 0.85rem; font-weight: 400; margin-top: 1.8em; }
 
 .md-typeset h4 {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--tetris-orange);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-/* --- Site title (header) and tabs ---------------------------------------- */
-
-.md-header {
-  background-color: var(--arcade-bg-alt);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+/* Heading colors — DARK scheme: neon */
+[data-md-color-scheme="slate"] .md-typeset h1 {
+  color: var(--tetris-cyan);
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
 }
+[data-md-color-scheme="slate"] .md-typeset h2 {
+  color: var(--tetris-yellow);
+  border-bottom: 1px solid rgba(255, 214, 0, 0.25);
+}
+[data-md-color-scheme="slate"] .md-typeset h3 { color: var(--tetris-purple); }
+[data-md-color-scheme="slate"] .md-typeset h4 { color: var(--tetris-orange); }
+
+/* Heading colors — LIGHT scheme: deep, readable */
+[data-md-color-scheme="default"] .md-typeset h1 {
+  color: var(--slim-purple);
+}
+[data-md-color-scheme="default"] .md-typeset h2 {
+  color: var(--slim-gold);
+  border-bottom: 1px solid rgba(184, 134, 11, 0.3);
+}
+[data-md-color-scheme="default"] .md-typeset h3 { color: var(--slim-magenta); }
+[data-md-color-scheme="default"] .md-typeset h4 { color: var(--slim-orange); }
+
+/* --- Site title and tabs ------------------------------------------------ */
 
 .md-header__title {
   font-family: 'Press Start 2P', monospace;
   font-size: 0.85rem;
   letter-spacing: 0.12em;
-}
-
-.md-tabs {
-  background: var(--arcade-bg);
-  border-bottom: 1px solid rgba(255, 64, 255, 0.2);
 }
 
 .md-tabs__link {
@@ -128,68 +127,83 @@
   text-transform: uppercase;
 }
 
-.md-tabs__link--active,
-.md-nav__link--active {
-  color: var(--tetris-cyan);
+/* DARK: header is dark with neon border underglow */
+[data-md-color-scheme="slate"] .md-header {
+  background-color: var(--arcade-bg-alt);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
 }
-
+[data-md-color-scheme="slate"] .md-tabs {
+  background: var(--arcade-bg);
+  border-bottom: 1px solid rgba(255, 64, 255, 0.2);
+}
 [data-md-color-scheme="slate"] .md-tabs__link--active {
+  color: var(--tetris-cyan);
   text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
 }
+[data-md-color-scheme="slate"] .md-nav__link--active { color: var(--tetris-cyan); }
 
-/* --- Code blocks: CRT terminal feel -------------------------------------- */
+/* LIGHT: header is deep purple with white text (Material default) */
+[data-md-color-scheme="default"] .md-tabs {
+  background: var(--slim-purple);
+}
+[data-md-color-scheme="default"] .md-nav__link--active {
+  color: var(--slim-teal);
+}
+
+/* --- Code blocks -------------------------------------------------------- */
 
 .md-typeset pre > code,
 .md-typeset .highlight pre {
-  border: 1px solid rgba(0, 255, 255, 0.18);
   border-radius: 4px;
 }
 
 [data-md-color-scheme="slate"] .md-typeset pre > code,
 [data-md-color-scheme="slate"] .md-typeset .highlight pre {
+  border: 1px solid rgba(0, 255, 255, 0.18);
   box-shadow: 0 0 24px rgba(0, 255, 255, 0.04),
               inset 0 0 30px rgba(0, 0, 0, 0.4);
 }
 
-/* Inline code — neon green on faint bg */
+[data-md-color-scheme="default"] .md-typeset pre > code,
+[data-md-color-scheme="default"] .md-typeset .highlight pre {
+  border: 1px solid rgba(74, 20, 140, 0.12);
+}
+
+/* Inline code */
 .md-typeset code:not(pre code) {
-  color: var(--tetris-green);
-  background: rgba(0, 255, 102, 0.08);
-  border: 1px solid rgba(0, 255, 102, 0.18);
   border-radius: 3px;
   padding: 0.1rem 0.35rem;
   font-size: 0.82rem;
 }
 
+[data-md-color-scheme="slate"] .md-typeset code:not(pre code) {
+  color: var(--tetris-green);
+  background: rgba(0, 255, 102, 0.08);
+  border: 1px solid rgba(0, 255, 102, 0.18);
+}
+
 [data-md-color-scheme="default"] .md-typeset code:not(pre code) {
-  color: #006633;
-  background: rgba(0, 102, 51, 0.08);
-  border-color: rgba(0, 102, 51, 0.2);
+  color: var(--slim-green);
+  background: rgba(46, 125, 50, 0.08);
+  border: 1px solid rgba(46, 125, 50, 0.2);
 }
 
-/* --- Strong / emphasis --------------------------------------------------- */
+/* --- Strong / emphasis -------------------------------------------------- */
 
-.md-typeset strong {
-  color: var(--tetris-yellow);
-}
-[data-md-color-scheme="default"] .md-typeset strong {
-  color: #B8860B;
-}
+[data-md-color-scheme="slate"] .md-typeset strong { color: var(--tetris-yellow); }
+[data-md-color-scheme="slate"] .md-typeset em      { color: var(--tetris-orange); }
 
-.md-typeset em {
-  color: var(--tetris-orange);
-}
-[data-md-color-scheme="default"] .md-typeset em {
-  color: #C84F00;
-}
+[data-md-color-scheme="default"] .md-typeset strong { color: var(--slim-gold); }
+[data-md-color-scheme="default"] .md-typeset em      { color: var(--slim-orange); }
 
-/* --- Admonitions / GitHub alerts: Tetris piece palette ------------------ */
+/* --- Admonitions / GitHub alerts (BOTH schemes — borders ok on either) -- */
 
 .md-typeset .admonition,
 .md-typeset details {
   border-radius: 4px;
 }
 
+/* Border colors apply to both schemes — they're visible against any bg */
 .md-typeset .admonition.note,    .md-typeset details.note,
 .md-typeset .admonition.info,    .md-typeset details.info       { border-color: var(--tetris-cyan); }
 .md-typeset .admonition.tip,     .md-typeset details.tip,
@@ -202,18 +216,18 @@
 .md-typeset .admonition.abstract,  .md-typeset details.abstract,
 .md-typeset .admonition.summary,   .md-typeset details.summary   { border-color: var(--tetris-orange); }
 
-/* Color the title bars to match */
-.md-typeset .admonition.note > .admonition-title,
-.md-typeset .admonition.info > .admonition-title          { background: rgba(0, 255, 255, 0.08); }
-.md-typeset .admonition.tip > .admonition-title,
-.md-typeset .admonition.hint > .admonition-title           { background: rgba(0, 255, 102, 0.08); }
-.md-typeset .admonition.warning > .admonition-title         { background: rgba(255, 214, 0, 0.08); }
-.md-typeset .admonition.danger > .admonition-title,
-.md-typeset .admonition.caution > .admonition-title         { background: rgba(255, 51, 102, 0.08); }
-.md-typeset .admonition.important > .admonition-title       { background: rgba(255, 64, 255, 0.08); }
-.md-typeset .admonition.abstract > .admonition-title        { background: rgba(255, 153, 51, 0.1); }
+/* DARK scheme: tinted title bars */
+[data-md-color-scheme="slate"] .md-typeset .admonition.note > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.info > .admonition-title          { background: rgba(0, 255, 255, 0.08); }
+[data-md-color-scheme="slate"] .md-typeset .admonition.tip > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.hint > .admonition-title           { background: rgba(0, 255, 102, 0.08); }
+[data-md-color-scheme="slate"] .md-typeset .admonition.warning > .admonition-title         { background: rgba(255, 214, 0, 0.08); }
+[data-md-color-scheme="slate"] .md-typeset .admonition.danger > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.caution > .admonition-title         { background: rgba(255, 51, 102, 0.08); }
+[data-md-color-scheme="slate"] .md-typeset .admonition.important > .admonition-title       { background: rgba(255, 64, 255, 0.08); }
+[data-md-color-scheme="slate"] .md-typeset .admonition.abstract > .admonition-title        { background: rgba(255, 153, 51, 0.1); }
 
-/* --- Buttons: arcade-style ----------------------------------------------- */
+/* --- Buttons ------------------------------------------------------------ */
 
 .md-typeset .md-button {
   font-family: 'JetBrains Mono', monospace;
@@ -222,39 +236,48 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border-radius: 4px;
-  border: 1px solid var(--tetris-cyan);
   transition: all 180ms;
 }
 
-.md-typeset .md-button--primary {
+[data-md-color-scheme="slate"] .md-typeset .md-button {
+  border: 1px solid var(--tetris-cyan);
+}
+[data-md-color-scheme="slate"] .md-typeset .md-button--primary {
   border-color: var(--tetris-purple);
   background: linear-gradient(180deg, rgba(255, 64, 255, 0.15), rgba(255, 64, 255, 0));
-}
-
-[data-md-color-scheme="slate"] .md-typeset .md-button--primary {
   box-shadow: 0 0 14px rgba(255, 64, 255, 0.3);
 }
-
-.md-typeset .md-button:hover {
-  border-color: var(--tetris-cyan);
-}
-
 [data-md-color-scheme="slate"] .md-typeset .md-button:hover {
+  border-color: var(--tetris-cyan);
   box-shadow: 0 0 18px rgba(0, 255, 255, 0.5);
   text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
 }
 
-/* --- Tables -------------------------------------------------------------- */
+[data-md-color-scheme="default"] .md-typeset .md-button {
+  border: 1px solid var(--slim-teal);
+  color: var(--slim-teal);
+}
+[data-md-color-scheme="default"] .md-typeset .md-button--primary {
+  border-color: var(--slim-purple);
+  background: var(--slim-purple);
+  color: white;
+}
+[data-md-color-scheme="default"] .md-typeset .md-button:hover {
+  background: rgba(0, 105, 92, 0.08);
+}
+[data-md-color-scheme="default"] .md-typeset .md-button--primary:hover {
+  background: var(--slim-purple-2);
+  color: white;
+}
+
+/* --- Tables ------------------------------------------------------------- */
 
 .md-typeset table:not([class]) {
-  border: 1px solid rgba(0, 255, 255, 0.2);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .md-typeset table:not([class]) th {
-  background: var(--arcade-bg-card);
-  color: var(--tetris-cyan);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
@@ -262,34 +285,39 @@
   font-weight: 700;
 }
 
-[data-md-color-scheme="default"] .md-typeset table:not([class]) th {
-  background: rgba(106, 27, 154, 0.08);
-  color: #6A1B9A;
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) {
+  border: 1px solid rgba(0, 255, 255, 0.2);
 }
-
-.md-typeset table:not([class]) td {
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: var(--arcade-bg-card);
+  color: var(--tetris-cyan);
+}
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) td {
   border-top-color: rgba(0, 255, 255, 0.08);
 }
 
-/* --- Footer prev/next chips: arcade glow on hover ------------------------ */
+[data-md-color-scheme="default"] .md-typeset table:not([class]) {
+  border: 1px solid rgba(74, 20, 140, 0.18);
+}
+[data-md-color-scheme="default"] .md-typeset table:not([class]) th {
+  background: rgba(74, 20, 140, 0.08);
+  color: var(--slim-purple);
+}
+[data-md-color-scheme="default"] .md-typeset table:not([class]) td {
+  border-top-color: rgba(74, 20, 140, 0.08);
+}
+
+/* --- Footer prev/next --------------------------------------------------- */
 
 .md-footer__inner {
   padding: 1.25rem 0.8rem;
-  background: var(--arcade-bg-alt);
 }
 
 .md-footer__link {
   padding: 0.7rem 1.1rem;
   border-radius: 4px;
-  border: 1px solid rgba(0, 255, 255, 0.25);
   margin: 0 0.25rem;
   transition: all 180ms;
-}
-
-.md-footer__link:hover {
-  border-color: var(--tetris-cyan);
-  background: rgba(0, 255, 255, 0.06);
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
 }
 
 .md-footer__title {
@@ -302,62 +330,100 @@
   font-family: 'Press Start 2P', monospace;
   font-size: 0.55rem;
   letter-spacing: 0.12em;
-  color: var(--tetris-purple);
 }
 
-/* --- Sidebar nav --------------------------------------------------------- */
+[data-md-color-scheme="slate"] .md-footer__inner {
+  background: var(--arcade-bg-alt);
+}
+[data-md-color-scheme="slate"] .md-footer__link {
+  border: 1px solid rgba(0, 255, 255, 0.25);
+}
+[data-md-color-scheme="slate"] .md-footer__link:hover {
+  border-color: var(--tetris-cyan);
+  background: rgba(0, 255, 255, 0.06);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+}
+[data-md-color-scheme="slate"] .md-footer__direction { color: var(--tetris-purple); }
+
+[data-md-color-scheme="default"] .md-footer__link {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+[data-md-color-scheme="default"] .md-footer__link:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-md-color-scheme="default"] .md-footer__direction { color: var(--tetris-yellow); }
+
+/* --- Sidebar nav -------------------------------------------------------- */
 
 .md-nav__title {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--tetris-purple);
 }
 
+[data-md-color-scheme="slate"] .md-nav__title { color: var(--tetris-purple); }
 [data-md-color-scheme="slate"] .md-nav__link:hover {
   color: var(--tetris-cyan);
   text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
 }
 
-/* --- Search box ---------------------------------------------------------- */
+[data-md-color-scheme="default"] .md-nav__title { color: var(--slim-purple); }
+[data-md-color-scheme="default"] .md-nav__link:hover { color: var(--slim-teal); }
 
-.md-search__form {
+/* --- Search ------------------------------------------------------------- */
+
+.md-search__input { font-family: 'JetBrains Mono', monospace; }
+
+[data-md-color-scheme="slate"] .md-search__form {
   border: 1px solid rgba(0, 255, 255, 0.2);
   border-radius: 4px;
 }
 
-.md-search__input {
-  font-family: 'JetBrains Mono', monospace;
-}
+/* --- Link hover (DARK only — glow) -------------------------------------- */
 
-/* --- Hover scan-line on links (subtle) ---------------------------------- */
-
-.md-typeset a:not(.md-button):not(.md-footer__link):hover {
+[data-md-color-scheme="slate"] .md-typeset a:not(.md-button):not(.md-footer__link):hover {
   text-shadow: 0 0 6px currentColor;
 }
 
-/* --- Hero / landing page accents ---------------------------------------- */
+/* --- Horizontal rules --------------------------------------------------- */
 
 [data-md-color-scheme="slate"] .md-typeset hr {
   border-color: rgba(0, 255, 255, 0.2);
   box-shadow: 0 0 4px rgba(0, 255, 255, 0.2);
 }
+[data-md-color-scheme="default"] .md-typeset hr {
+  border-color: rgba(74, 20, 140, 0.2);
+}
 
-/* Card grid (used on home page) */
+/* --- Card grid (used on home page) -------------------------------------- */
+
 .md-typeset .grid.cards > * {
-  border: 1px solid rgba(0, 255, 255, 0.15);
   border-radius: 4px;
   transition: all 200ms;
 }
 
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > * {
+  border: 1px solid rgba(0, 255, 255, 0.15);
+}
 [data-md-color-scheme="slate"] .md-typeset .grid.cards > *:hover {
   border-color: var(--tetris-cyan);
   box-shadow: 0 0 18px rgba(0, 255, 255, 0.2);
   transform: translateY(-2px);
 }
 
-/* --- Scrollbars (webkit) ------------------------------------------------- */
+[data-md-color-scheme="default"] .md-typeset .grid.cards > * {
+  border: 1px solid rgba(74, 20, 140, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+[data-md-color-scheme="default"] .md-typeset .grid.cards > *:hover {
+  border-color: var(--slim-purple);
+  box-shadow: 0 4px 14px rgba(74, 20, 140, 0.18);
+  transform: translateY(-2px);
+}
+
+/* --- Custom scrollbars (DARK only) -------------------------------------- */
 
 [data-md-color-scheme="slate"] ::-webkit-scrollbar {
   width: 10px;
@@ -376,7 +442,7 @@
   box-shadow: 0 0 8px var(--tetris-purple);
 }
 
-/* --- Responsive: keep readable on small screens ------------------------- */
+/* --- Responsive --------------------------------------------------------- */
 
 @media screen and (max-width: 44.9375em) {
   .md-typeset h1 { font-size: 1.2rem; line-height: 1.4; }
