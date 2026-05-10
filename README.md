@@ -12,9 +12,9 @@
 ### Write ARM64 NEON code in Kotlin. Run it on Android. **No JNI per call.**
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-0E76A8?style=flat-square)](LICENSE)
+[![JitPack](https://jitpack.io/v/iamjosephmj/Slim.svg?style=flat-square)](https://jitpack.io/#iamjosephmj/Slim)
 [![minSdk](https://img.shields.io/badge/minSdk-26-2E7D32?style=flat-square)](#-supported-devices)
 [![ABI](https://img.shields.io/badge/abi-arm64--v8a-455A64?style=flat-square)](#-supported-devices)
-[![Version](https://img.shields.io/badge/version-0.1.0-3949AB?style=flat-square)](#-installation)
 [![Speedup](https://img.shields.io/badge/speedup-6.95×-C62828?style=flat-square)](#-performance)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.x-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 
@@ -132,12 +132,17 @@ zero races. Probe-pool serves up to 8 in-flight kernels.
 
 ## 📦 Installation
 
+Slim ships via [JitPack](https://jitpack.io/#iamjosephmj/Slim) — no
+Maven Central account required, no signing keys, builds straight from
+GitHub tags.
+
 ```kotlin
-// settings.gradle.kts (or your repos block)
-repositories {
-    mavenCentral()
-    // Or, for local development:
-    mavenLocal()
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven(url = "https://jitpack.io")
+    }
 }
 
 // app/build.gradle.kts
@@ -149,9 +154,14 @@ android {
 }
 
 dependencies {
-    implementation("io.simdkt:nativekt:0.1.0")
+    implementation("com.github.iamjosephmj.Slim:nativekt:0.1.0")
 }
 ```
+
+The `groupId.repo:module:tag` triple resolves to JitPack's build of the
+`:nativekt` module at the matching git tag. Pin a specific tag for
+reproducible builds, or use a SHA (`com.github.iamjosephmj.Slim:nativekt:8b2015b`)
+for unreleased commits.
 
 > [!WARNING]
 > **Status: 0.1.0 — V1 internal release.** Public API shape is stable
