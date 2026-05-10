@@ -435,7 +435,7 @@ class Arm64DecoderTest {
                 0xeb01001f.toInt(),
             ),
         )
-        // mov x1, x0  (orr x1, xzr, x0) — Arm64Test.kt:logical line 105
+        // mov x0, x1  (orr x0, xzr, x1) — Arm64Test.kt:logical line 105
         assertDec(
             0xaa0103e0.toInt(),
             DecodedInsn(
@@ -577,6 +577,16 @@ class Arm64DecoderTest {
                 "csneg",
                 listOf(Operand.Reg("x0"), Operand.Reg("x1"), Operand.Reg("x2"), Operand.CondCode("le")),
                 0xda82d420.toInt(),
+            ),
+        )
+        // cset x0, eq  =  csinc x0, xzr, xzr, ne  (cond inverted: ne→eq)
+        // Encoding: sf=1, op=0, S=0, fixed=0b11010100, rm=31, cond=1(ne), op2=1, rn=31, rd=0
+        assertDec(
+            0x9a9f17e0.toInt(),
+            DecodedInsn(
+                "cset",
+                listOf(Operand.Reg("x0"), Operand.CondCode("eq")),
+                0x9a9f17e0.toInt(),
             ),
         )
     }

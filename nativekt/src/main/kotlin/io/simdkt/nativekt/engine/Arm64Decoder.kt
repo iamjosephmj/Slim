@@ -541,6 +541,9 @@ object Arm64Decoder {
             opc == 0b000 && o0 == 0 ->
                 // madd Rd, Rn, Rm, Ra
                 DecodedInsn("madd", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm)), Operand.Reg(regName(ra))), op)
+            opc == 0b000 && o0 == 1 && ra == 31 ->
+                // mneg Rd, Rn, Rm = msub Rd, Rn, Rm, xzr
+                DecodedInsn("mneg", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm))), op)
             opc == 0b000 && o0 == 1 ->
                 // msub Rd, Rn, Rm, Ra
                 DecodedInsn("msub", listOf(Operand.Reg(regName(rd)), Operand.Reg(regName(rn)), Operand.Reg(regName(rm)), Operand.Reg(regName(ra))), op)
