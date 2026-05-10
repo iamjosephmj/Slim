@@ -101,6 +101,8 @@ class Asm {
             check(!isBound) { "label already bound at byte offset $byteOffset" }
             byteOffset = offset
         }
+
+        internal fun byteOffsetOrNull(): Int? = if (isBound) byteOffset else null
     }
 
     private class Fixup(
@@ -112,6 +114,12 @@ class Asm {
 
     private val instrs = mutableListOf<Int>()
     private val fixups = mutableListOf<Fixup>()
+
+    // Label name registry: byte-offset -> name (anonymous: "L0", "L1", ...)
+    private val _labelNames = mutableMapOf<Int, String>()
+    private var anonymousCounter = 0
+
+    val labelNames: Map<Int, String> get() = _labelNames.toMap()
 
     private val byteOffset: Int get() = instrs.size * 4
 
@@ -127,8 +135,15 @@ class Asm {
         return label
     }
 
-    /** Convenience: create a label, bind it here, return it. */
-    fun bindLabel(): Label = bind(Label())
+    /** Convenience: create a label, bind it here, return it. Records name in [labelNames]. */
+    fun bindLabel(name: String? = null): Label {
+        val label = Label()
+        bind(label)
+        val resolvedName = name ?: "L${anonymousCounter++}"
+        val offset = label.byteOffsetOrNull() ?: error("bind() must set offset")
+        _labelNames[offset] = resolvedName
+        return label
+    }
 
     // -----------------------------------------------------------------
     // Plain instruction emission
