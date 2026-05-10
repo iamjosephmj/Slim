@@ -7,6 +7,7 @@ import io.simdkt.nativekt.NativeKt
 import io.simdkt.nativekt.engine.Arm64
 import io.simdkt.nativekt.engine.Asm
 import io.simdkt.nativekt.engine.KernelMetadata
+import io.simdkt.nativekt.engine.MemoryExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -485,6 +486,25 @@ fun Slim.preview(body: SlimScope.() -> Unit): String {
     return Disassembler.format(bytes, metadata)
 }
 
+/**
+ * Returns a human-readable disassembly of the compiled kernel image held
+ * by this handle.
+ *
+ * The output format matches [Slim.preview]: one instruction per line with
+ * hex offset, opcode, mnemonic, and operands. Label names and source-frame
+ * annotations (when [Slim.debug] was set at compile time) are included when
+ * the handle was produced via the Slim DSL (`slim {}` or an equivalent
+ * path that populates [KernelHandle.metadata]).
+ *
+ * Handles produced directly from [NativeKt.compileKernel] carry the raw
+ * template bytes but no metadata (labels, source frames); the output will
+ * still be valid ARM64 disassembly, just without annotation.
+ *
+ * @throws IllegalArgumentException if the byte image is empty or its
+ *   length is not a multiple of 4.
+ */
+fun KernelHandle.disassemble(): String = Disassembler.format(bytes, metadata)
+
 private fun compileAndCache(body: SlimScope.() -> Unit): CachedSlimKernel {
     check(NativeKt.isReady) { "Slim.initialize must be called before slim {}" }
     val scope = SlimScope()
@@ -711,17 +731,16 @@ internal class CachedSlimKernel(
     val handle: KernelHandle,
     /** Serializes runs against the same handle (handle is single-writer). */
     val mutex: Mutex = Mutex(),
-    /** Metadata captured at compile time (source frames + label names). */
-    val metadata: KernelMetadata = KernelMetadata.EMPTY,
-    /** Assembled byte image; retained for disassembly without re-assembling. */
-    val bytes: ByteArray = ByteArray(0),
 ) {
     /**
      * Returns a human-readable disassembly of this kernel's byte image,
      * annotated with label names and (if [Slim.debug] was set at compile
      * time) source file/line references.
+     *
+     * Delegates to [KernelHandle.bytes] and [KernelHandle.metadata] which
+     * are populated when the handle is created via [MemoryExecutor.compileTemplate].
      */
-    fun disassemble(): String = Disassembler.format(bytes, metadata)
+    fun disassemble(): String = Disassembler.format(handle.bytes, handle.metadata)
 }
 
 /** Wrap ByteArray for use as a HashMap key (content equality + hash). */
@@ -763,8 +782,11 @@ private object SlimCache {
         val key = KernelKey(template.bytes)
         val existing = map[key]
         if (existing != null) return existing
-        val handle = NativeKt.compileKernel(template)
-        val cached = CachedSlimKernel(handle, metadata = metadata, bytes = template.bytes)
+        check(NativeKt.isReady) { "Slim.initialize must be called before slim {}" }
+        // Use MemoryExecutor directly so we can attach metadata to the handle,
+        // enabling KernelHandle.disassemble() without re-assembling.
+        val handle = MemoryExecutor.compileTemplate(template, metadata)
+        val cached = CachedSlimKernel(handle)
         map[key] = cached
         return cached
     }

@@ -1,5 +1,6 @@
 package io.simdkt.nativekt
 
+import io.simdkt.nativekt.engine.KernelMetadata
 import io.simdkt.nativekt.engine.MemoryExecutor
 import java.nio.ByteBuffer
 
@@ -84,6 +85,19 @@ import java.nio.ByteBuffer
 class KernelHandle internal constructor(
     @JvmField internal val region: MemoryExecutor.Region,
     @JvmField internal val dataPtrSlots: IntArray,
+    /**
+     * Raw byte image of the compiled kernel. Empty when the handle was
+     * produced directly via [io.simdkt.nativekt.engine.MemoryExecutor]
+     * without going through the Slim DSL or [NativeKt.compileKernel].
+     * Non-empty bytes enable [io.simdkt.slim.disassemble].
+     */
+    @JvmField internal val bytes: ByteArray = ByteArray(0),
+    /**
+     * Metadata captured at compile time (label names, source frames).
+     * [KernelMetadata.EMPTY] when no metadata was provided at compile
+     * time (e.g. raw [io.simdkt.nativekt.engine.MemoryExecutor] usage).
+     */
+    @JvmField internal val metadata: KernelMetadata = KernelMetadata.EMPTY,
 ) : AutoCloseable {
 
     @Volatile

@@ -122,12 +122,20 @@ internal object MemoryExecutor {
      * Caller is responsible for [io.simdkt.nativekt.KernelHandle.close] when
      * done.
      */
-    fun compileTemplate(template: io.simdkt.nativekt.KernelTemplate): io.simdkt.nativekt.KernelHandle {
+    fun compileTemplate(
+        template: io.simdkt.nativekt.KernelTemplate,
+        metadata: KernelMetadata = KernelMetadata.EMPTY,
+    ): io.simdkt.nativekt.KernelHandle {
         check(initialized) { "MemoryExecutor not initialized" }
         val region = Region.allocate(libcoreOs, template.bytes.size)
         return try {
             region.writeCode(template.bytes, rawMem)
-            io.simdkt.nativekt.KernelHandle(region, template.dataPtrSlots.copyOf())
+            io.simdkt.nativekt.KernelHandle(
+                region,
+                template.dataPtrSlots.copyOf(),
+                bytes = template.bytes.copyOf(),
+                metadata = metadata,
+            )
         } catch (t: Throwable) {
             region.close()
             throw t
