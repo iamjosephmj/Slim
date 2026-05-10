@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Slim Bench</string>
+    <string name="title_main">JNI vs Slim</string>
+    <string name="subtitle_main">Fused 8-stage NEON pipeline · same algorithm, different dispatch</string>
+    <string name="btn_run">Run</string>
+    <string name="btn_copy">Copy CSV</string>
+    <string name="status_idle">Press Run to start. ~10–20 s on a fast phone.</string>
+    <string name="status_running">Running…</string>
+    <string name="status_done">Done.</string>
+    <string name="copy_toast">Results copied to clipboard.</string>
+</resources>

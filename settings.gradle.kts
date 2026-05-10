@@ -22,4 +22,5 @@ dependencyResolutionManagement {
 rootProject.name = "Slim"
 include(":app")
 include(":nativekt")
+include(":bench")
  

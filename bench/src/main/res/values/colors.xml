@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="jni_color">#BB86FC</color>
+    <color name="jni_color_dim">#33BB86FC</color>
+    <color name="slim_color">#03DAC6</color>
+    <color name="slim_color_dim">#3303DAC6</color>
+
+    <color name="chip_tie">#4CAF50</color>
+    <color name="chip_tie_bg">#1F4CAF50</color>
+    <color name="chip_close">#FFB74D</color>
+    <color name="chip_close_bg">#1FFFB74D</color>
+    <color name="chip_slow">#FF8A65</color>
+    <color name="chip_slow_bg">#1FFF8A65</color>
+    <color name="chip_neutral">#9E9E9E</color>
+    <color name="chip_neutral_bg">#1F9E9E9E</color>
+
+    <color name="surface_subtle">#0DFFFFFF</color>
+</resources>

@@ -530,6 +530,44 @@ xychart-beta
 > [!TIP]
 > Probe pool serves up to **8 in-flight** kernels before blocking. Different kernels run in parallel; same-kernel calls serialize via a per-handle `Mutex`.
 
+### Apples-to-apples vs JNI — multi-device
+
+The numbers above compare Slim against scalar Kotlin. The question that comes up next is "how close does Slim get to **hand-written native NEON**?" The [`:bench`](bench/) module answers that fair-and-square:
+
+- **Same algorithm.** Both backends run an 8-stage fused NEON pipeline (`invert → contrast → brighten(40) → darken(20)`, repeated). All 8 stages execute back-to-back in NEON registers per 16-byte chunk — one load, one store per byte for the whole pipeline.
+- **Same instruction stream.** Slim's kernel is emitted at runtime from a Kotlin DSL; JNI's is written by hand using `arm_neon.h` and compiled with `clang -O3 -march=armv8-a+simd`. Algorithmically identical.
+- **Same memory pattern, same thread, same input.** Both backends operate on the same direct `ByteBuffer`, on the bench thread, with no fan-out or thread pool. A correctness gate enforces byte-identical output before any timing happens.
+- **Only variable: dispatch mechanism.** JNI uses a registered native trampoline. Slim uses the ART entry-point hijack described in [How it works](#-how-it-works).
+
+Ran on 7 real devices via a cloud test farm (full screenshots in [`bench/bench-results/`](bench/bench-results/)):
+
+<p align="center">
+  <img src="bench/bench-results/pixel-10-pro-xl-android17.png" alt="Pixel 10 Pro XL · Android 17 · Slim within 6% of JNI at 4K" width="360"/>
+</p>
+
+| Device | Android | Dispatch baseline<br/>(JNI / Slim) | 1080p<br/>(2 MB) | 4K<br/>(8 MB) |
+|---|:-:|:-:|:-:|:-:|
+| Pixel 10 Pro XL | 17 | 0.73 µs / 10.5 µs | 11% slower | 6% slower |
+| Galaxy A54 5G | 16 | 1.15 µs / 16.7 µs | 13% slower | 7% slower |
+| Oppo Reno13 F | 15 | — / 20.8 µs | 12% slower | **TIE** |
+| Galaxy A23 5G | 14 | 1.41 µs / 19.2 µs | 9% slower | **TIE** |
+| Galaxy Note20 | 13 | 1.42 µs / 26.4 µs | **TIE** | **TIE** |
+| Galaxy S20 FE 2022 | 12 | — / 15.7 µs | 13% slower | **TIE** |
+| Oppo A94 5G | 11 | 1.54 µs / 20.2 µs | 7% slower | **TIE** |
+
+**TIE = Slim within 5% of JNI on that cell.** Across 7 devices, three vendors (Google, Samsung, Oppo), and six Android versions (11 → 17), Slim never loses by more than 13% at 1080p, and matches JNI on 5 of 7 devices at 4K.
+
+The "dispatch baseline" column is an empty-kernel call (placeholder prologue + `ret` on the Slim side, no-op native function on the JNI side). It measures pure call overhead. JNI is structurally faster there — sub-2 µs vs 10–26 µs — and that gap is real and stable. At production workload sizes, the gap amortizes into the noise.
+
+#### Run the bench yourself
+
+```bash
+./gradlew :bench:installDebug
+adb shell am start -n com.example.slim.bench/.BenchActivity
+```
+
+Tap **Run**. The on-device UI shows a dispatch-baseline card and one card per image size with median, p95, p99, and throughput. **Copy CSV** exports the raw rows to your clipboard.
+
 ---
 
 ## 📱 Supported devices
@@ -538,7 +576,7 @@ xychart-beta
 |---|---|
 | **API** | 26+ (Android 8.0 and up) |
 | **ABI** | `arm64-v8a` only |
-| **Confirmed on-device** | AOSP-derived Android 8–16 (Pixel, Samsung One UI). The bypass cascade gracefully falls through technique-by-technique on novel ROMs; if all four fail, `Slim.initialize` returns `false` and `lastError` reports which step gave up. |
+| **Confirmed on-device** | AOSP-derived Android 8–17 across Pixel, Samsung One UI, and Oppo ColorOS — see the [JNI-parity bench](#apples-to-apples-vs-jni--multi-device) for a 7-device sweep. The bypass cascade gracefully falls through technique-by-technique on novel ROMs; if all four fail, `Slim.initialize` returns `false` and `lastError` reports which step gave up. |
 
 The runtime requires:
 
