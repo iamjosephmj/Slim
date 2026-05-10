@@ -56,9 +56,9 @@
 
 <a href="#-stage-1--installation"><img src="https://img.shields.io/badge/▶_STAGE_1-INSTALL-00FFFF?style=for-the-badge&labelColor=000000" alt="Stage 1"/></a>
 <a href="#-stage-2--quick-start"><img src="https://img.shields.io/badge/▶_STAGE_2-QUICK_START-FFFF00?style=for-the-badge&labelColor=000000" alt="Stage 2"/></a>
-<a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/▶_BOSS-ARCHITECTURE-FF00FF?style=for-the-badge&labelColor=000000" alt="Boss"/></a>
-<a href="docs/COOKBOOK.md"><img src="https://img.shields.io/badge/▶_BONUS-COOKBOOK-00FF00?style=for-the-badge&labelColor=000000" alt="Bonus"/></a>
-<a href="docs/CONTRIBUTING.md"><img src="https://img.shields.io/badge/▶_CO-OP-CONTRIBUTING-FF0040?style=for-the-badge&labelColor=000000" alt="Co-op"/></a>
+<a href="#%EF%B8%8F-production-readiness"><img src="https://img.shields.io/badge/▶_PROD-READINESS-FF00FF?style=for-the-badge&labelColor=000000" alt="Production"/></a>
+<a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/▶_BOSS-ARCHITECTURE-00FF00?style=for-the-badge&labelColor=000000" alt="Boss"/></a>
+<a href="docs/COOKBOOK.md"><img src="https://img.shields.io/badge/▶_BONUS-COOKBOOK-FF0040?style=for-the-badge&labelColor=000000" alt="Bonus"/></a>
 
 <br/>
 <br/>
@@ -82,16 +82,17 @@
 <details>
 <summary><b>📜 SELECT STAGE — Table of contents</b></summary>
 
-- [A NOTE BEFORE WE START](#a-note-before-we-start)
 - [🟦 What it looks like](#-what-it-looks-like)
 - [🟨 Why](#-why)
 - [🟧 STAGE 1 — Installation](#-stage-1--installation)
 - [🟪 STAGE 2 — Quick start](#-stage-2--quick-start)
 - [🟩 STAGE 3 — Core concepts](#-stage-3--core-concepts)
 - [🟥 STAGE 4 — Examples](#-stage-4--examples)
-- [👾 BOSS FIGHT — How it works](#-boss-fight--how-it-works)
+- [🛡️ Production readiness](#%EF%B8%8F-production-readiness)
 - [🏆 HIGH SCORES — Performance](#-high-scores--performance)
 - [🎮 Supported devices](#-supported-devices)
+- [👾 BOSS FIGHT — How it works](#-boss-fight--how-it-works)
+- [📖 Background — a note before we start](#-background--a-note-before-we-start)
 - [⚠️ Caveats and limitations](#%EF%B8%8F-caveats-and-limitations)
 - [📚 Documentation](#-documentation)
 - [🤝 Contributing](#-contributing)
@@ -99,39 +100,6 @@
 - [🙏 Acknowledgments](#-acknowledgments)
 
 </details>
-
-```
-░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-```
-
-## A note before we start
-
-This started as something I bumped into while reading about **userspace
-boundaries** on Android — the invisible lines the OS and the runtime
-draw *inside* your own process. The JNI boundary between Kotlin and
-native code. The W^X boundary that says no page is both writable and
-executable. The hidden-API boundary that locks you out of ART's
-internals starting on API 28.
-
-What grabbed me is that most of these boundaries are *convention, not
-silicon* — they're enforced by checks running in the same process you
-are. ART, for instance, links every Kotlin method to a function pointer
-(`entry_point_from_quick_compiled_code_`) that the dispatcher reads on
-every call. If you can flip that pointer to a page of your own ARM64
-machine code, the runtime jumps into your code instead of the
-JIT-compiled body — no JNI hop, no separate `.so`, no NDK build. Your
-kernel returns, the runtime keeps going like nothing happened.
-
-Slim is a working answer to *"what if the boundary between Kotlin and
-native code is just a writable pointer?"* — packaged as a small SDK so
-I could reuse the trick for tight SIMD kernels without paying NDK's
-startup cost on every project.
-
-> [!TIP]
-> **`PRESS START`** — for the SDK, skip to [STAGE 1: Installation](#-stage-1--installation).
-> For the boundary stuff, the [Architecture doc](docs/ARCHITECTURE.md)
-> walks every line we cross: memfd dual-map (W^X), entry-point hijack,
-> four-tier hidden-API bypass.
 
 ```
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -195,6 +163,47 @@ Slim sits in a gap. You write NEON instructions in Kotlin, the runtime
 JIT-compiles them into native code, and ART dispatches the kernel via a
 hijacked entry-point — no JNI, no separate build artifact, no scheduler
 in the way.
+
+> [!NOTE]
+> 📈 **Measured on Samsung S24 (Android 16, Cortex-X4):** SAXPY-style brightness kernel over a 16 MB float buffer.
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="200">
+
+### 🐢 Kotlin scalar
+**`5.32 ms`**
+3.0 GB/s
+*1.0× baseline*
+
+</td>
+<td align="center" width="200">
+
+### ⚡ Slim
+*FloatArray (eager copy)*
+**`2.22 ms`**
+7.2 GB/s
+*2.4×*
+
+</td>
+<td align="center" width="200">
+
+### 🚀 Slim
+*Floats (zero-copy)*
+**`0.76 ms`** 🔥
+**23.4 GB/s**
+**`6.95×`**
+
+</td>
+</tr>
+</table>
+
+</div>
+
+> [!TIP]
+> Concurrency: 200 dispatches across 4 coroutines complete in 67 ms with zero races. Probe-pool serves up to 8 in-flight kernels.
 
 ```
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -276,6 +285,8 @@ class MyViewModel : ViewModel() {
 One-time runtime setup. Call from `Application.onCreate` or before any
 `slim {}` call. Idempotent. Returns `false` on devices where the runtime
 can't bring up a working dispatch path; `lastError` has the diagnostic.
+**Always check the return value** and have a scalar fallback ready —
+see [Production readiness](#%EF%B8%8F-production-readiness).
 
 ### `slim(data) { ... }`
 
@@ -429,89 +440,78 @@ your kernel, and more.
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
-## 👾 BOSS FIGHT — How it works
+## 🛡️ Production readiness
 
-Slim sits on top of three pieces of ART internals plumbing — setup once,
-encode per kernel, dispatch per call:
+Slim takes liberties with the runtime to deliver native-throughput SIMD
+without JNI. The engineering bet is that **the runtime is allowed to
+refuse**, and you handle that. Three things make this safe to ship:
 
-```mermaid
-%%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#1A0033', 'primaryTextColor':'#00FFFF', 'primaryBorderColor':'#FF00FF', 'lineColor':'#FFFF00', 'secondaryColor':'#330066', 'tertiaryColor':'#000000' }}}%%
-flowchart TB
-    subgraph Setup["🔧 Slim.initialize() — once per process"]
-        H1["Hidden-API bypass<br/>(4-tier cascade)"]
-        H2["Locate ArtMethod offsets<br/>(probe entry_point_ field)"]
-        H1 --> H2
-    end
+### Kill-switch via `Slim.initialize()`
 
-    subgraph Encode["📝 slim &#123; ... &#125; — per kernel"]
-        E1["Encode NEON instructions<br/>(two-pass label fixup)"]
-        E2["Write bytes → memfd R/W"]
-        E3["mmap memfd R/X<br/>(shared physical pages, no flush)"]
-        E1 --> E2 --> E3
-    end
+`initialize()` returns `false` on devices where the dispatch path can't
+be brought up. `Slim.lastError` reports which step gave up. Wire a
+scalar fallback in one line:
 
-    subgraph Dispatch["⚡ Per call — no JNI"]
-        D1["Patch ArtMethod.entry_point_<br/>→ R/X page address"]
-        D2["ART quick-dispatch jumps<br/>into shellcode"]
-        D3["NEON kernel runs at native speed"]
-        D4["ret → restore entry_point_"]
-        D1 --> D2 --> D3 --> D4
-    end
-
-    Setup ==> Encode
-    Encode ==> Dispatch
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        val ready = Slim.initialize(this)
+        FastPath.brighten = if (ready) ::slimBrighten else ::scalarBrighten
+        if (!ready) Log.i("Slim", "fell back: ${Slim.lastError}")
+    }
+}
 ```
 
-The dispatch path itself, traced as a sequence:
+No exception, no crash — just a clean signal to use your fallback path.
+You get NEON throughput where it works and JIT'd Kotlin where it
+doesn't.
 
-```mermaid
-%%{init: {'theme':'dark', 'themeVariables': { 'actorBkg':'#1A0033', 'actorBorder':'#FF00FF', 'actorTextColor':'#00FFFF', 'signalColor':'#FFFF00', 'signalTextColor':'#FFFFFF', 'noteBkgColor':'#330066', 'noteTextColor':'#00FF00', 'noteBorderColor':'#FF00FF' }}}%%
-sequenceDiagram
-    autonumber
-    participant K as 🟪 Kotlin call site
-    participant ART as 🟧 ART runtime
-    participant AM as 🟨 ArtMethod
-    participant RX as 🟩 memfd R/X page
+### 4-tier graceful bypass cascade
 
-    Note over K,RX: Slim.initialize() done once — bypass passed, offsets cached
+On API 28+, ART blocks reflective access to internals. Slim attempts
+four progressively-narrower techniques, falling through tier by tier
+until one succeeds. The first tier that survives wins; offsets are
+cached at `<cacheDir>/nk_policy.bin` so subsequent app launches skip
+discovery entirely (~3 ms warm cold-start vs ~10 ms cold).
 
-    K->>+ART: slim(data) { ... }  (suspend)
-    ART->>AM: peek entry_point_from_quick_compiled_code_
-    Note over AM: original pointer saved
-    ART->>AM: poke entry_point_ → R/X page
-    ART->>+RX: jump (zero JNI hop)
-    Note over RX: NEON kernel runs at native speed
-    RX-->>-ART: ret
-    ART->>AM: restore entry_point_
-    ART-->>-K: resume coroutine
-```
+| Tier | Mechanism | Used on |
+|:-:|:--|:--|
+| 1 | `setHiddenApiExemptions` reflection | API 28–29 stock |
+| 2 | Meta-reflection via `ClassLoader` chain | API 30–32 |
+| 3 | `Os.mmap` direct ELF parse | API 33–35 |
+| 4 | `art::Runtime::instance_` ELF lookup + memory probe | API 36+, novel ROMs |
 
-**1. memfd dual-map JIT memory** — A `memfd` is mapped twice: once R/W
-(for writing instruction bytes) and once R/X (for execution). The pages
-share physical memory; allocating the R/X mapping *after* the R/W writes
-complete dodges I-cache staleness without an explicit flush. This is the
-"JIT executor" everyone reinvents on Android.
+Confirmed across **AOSP-derived Android 8–16 (Pixel, Samsung One UI)**.
+If all four fail, `initialize()` returns `false` cleanly.
 
-**2. ART entry-point hijack dispatch** — Every Java/Kotlin method has an
-`ArtMethod` struct in the runtime; the field
-`entry_point_from_quick_compiled_code_` is a function pointer that
-ART's "quick" dispatch path jumps through. Slim overwrites that pointer
-with the address of your shellcode, calls the corresponding `Method`
-reflectively (which jumps directly into the JIT'd code via ART's normal
-dispatch), then restores the pointer. **Zero JNI on the dispatch path.**
-The patch/unpatch is ~200 ns of `Unsafe.peekLong` / `pokeLong` calls.
+### Anti-tamper compatibility
 
-**3. Hidden-API bypass** — On API 28+, ART blocks reflective access to
-`libcore.io.Os.mmap`, ArtMethod fields, and `setHiddenApiExemptions`.
-Slim defeats this with a four-tier cascade. The last tier — used on
-API 36 — locates the `art::Runtime` singleton by ELF-parsing
-`libart.so` for `art::Runtime::instance_`, then probes the Runtime's
-memory for the `hidden_api_policy_` field and writes `kDisabled`. The
-discovered offset is cached at `<cacheDir>/nk_policy.bin`.
+| SDK / runtime check | Likely outcome |
+|---|:-:|
+| **Google Play Integrity API** | ✅ No interaction (no native lib, no DEX modification) |
+| **Stock ROMs (no anti-tamper)** | ✅ Confirmed compatible |
+| **DexProtector** | ⚠️ Likely flag — test before shipping |
+| **Promon SHIELD** | ⚠️ Likely flag — test before shipping |
+| **AppDome** | ⚠️ Likely flag — test before shipping |
+| **Custom anti-tamper / RASP** | ⚠️ Slim performs reflection these are designed to detect — evaluate per vendor |
 
-For the full architectural walkthrough — including how the encoder's
-two-pass label fixup works, how the kernel cache is keyed, and the
-concurrency model — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The reflection Slim performs is exactly the kind hardening SDKs are
+designed to flag. If you embed one, run a smoke test on your build
+pipeline before shipping. The kill-switch above means worst case is a
+quiet fallback to scalar code — not a crash.
+
+### What "production" means here
+
+Slim 0.1.0 is shipping inside internal apps. The dispatch mechanism has
+been validated across the supported API range. The encoder ships with
+**150+ paired golden-byte tests** + **14 property-based round-trip
+tests** + **1000-opcode negative tests** (random bytes never throw).
+The remaining risks are vendor-ROM novelty (mitigated by the cascade
++ kill-switch) and anti-tamper interaction (above).
+
+> [!TIP]
+> **`SAFE MODE`** — for any code path where Slim might be invoked, gate it on `Slim.initialize()`'s return value. If the dispatch path fails on a user's device, you want a scalar fallback, not a 1-star review.
 
 ```
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -593,19 +593,139 @@ The runtime requires:
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
+## 👾 BOSS FIGHT — How it works
+
+Slim sits on top of three pieces of ART internals plumbing — setup once,
+encode per kernel, dispatch per call:
+
+```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#1A0033', 'primaryTextColor':'#00FFFF', 'primaryBorderColor':'#FF00FF', 'lineColor':'#FFFF00', 'secondaryColor':'#330066', 'tertiaryColor':'#000000' }}}%%
+flowchart TB
+    subgraph Setup["🔧 Slim.initialize() — once per process"]
+        H1["Hidden-API bypass<br/>(4-tier cascade)"]
+        H2["Locate ArtMethod offsets<br/>(probe entry_point_ field)"]
+        H1 --> H2
+    end
+
+    subgraph Encode["📝 slim &#123; ... &#125; — per kernel"]
+        E1["Encode NEON instructions<br/>(two-pass label fixup)"]
+        E2["Write bytes → memfd R/W"]
+        E3["mmap memfd R/X<br/>(shared physical pages, no flush)"]
+        E1 --> E2 --> E3
+    end
+
+    subgraph Dispatch["⚡ Per call — no JNI"]
+        D1["Patch ArtMethod.entry_point_<br/>→ R/X page address"]
+        D2["ART quick-dispatch jumps<br/>into shellcode"]
+        D3["NEON kernel runs at native speed"]
+        D4["ret → restore entry_point_"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    Setup ==> Encode
+    Encode ==> Dispatch
+```
+
+The dispatch path itself, traced as a sequence:
+
+```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'actorBkg':'#1A0033', 'actorBorder':'#FF00FF', 'actorTextColor':'#00FFFF', 'signalColor':'#FFFF00', 'signalTextColor':'#FFFFFF', 'noteBkgColor':'#330066', 'noteTextColor':'#00FF00', 'noteBorderColor':'#FF00FF' }}}%%
+sequenceDiagram
+    autonumber
+    participant K as 🟪 Kotlin call site
+    participant ART as 🟧 ART runtime
+    participant AM as 🟨 ArtMethod
+    participant RX as 🟩 memfd R/X page
+
+    Note over K,RX: Slim.initialize() done once — bypass passed, offsets cached
+
+    K->>+ART: slim(data) { ... }  (suspend)
+    ART->>AM: peek entry_point_from_quick_compiled_code_
+    Note over AM: original pointer saved
+    ART->>AM: poke entry_point_ → R/X page
+    ART->>+RX: jump (zero JNI hop)
+    Note over RX: NEON kernel runs at native speed
+    RX-->>-ART: ret
+    ART->>AM: restore entry_point_
+    ART-->>-K: resume coroutine
+```
+
+**1. memfd dual-map JIT memory** — A `memfd` is mapped twice: once R/W
+(for writing instruction bytes) and once R/X (for execution). The pages
+share physical memory; allocating the R/X mapping *after* the R/W writes
+complete dodges I-cache staleness without an explicit flush. This is the
+"JIT executor" everyone reinvents on Android.
+
+**2. ART entry-point hijack dispatch** — Every Java/Kotlin method has an
+`ArtMethod` struct in the runtime; the field
+`entry_point_from_quick_compiled_code_` is a function pointer that
+ART's "quick" dispatch path jumps through. Slim overwrites that pointer
+with the address of your shellcode, calls the corresponding `Method`
+reflectively (which jumps directly into the JIT'd code via ART's normal
+dispatch), then restores the pointer. **Zero JNI on the dispatch path.**
+The patch/unpatch is ~200 ns of `Unsafe.peekLong` / `pokeLong` calls.
+
+**3. Hidden-API bypass** — On API 28+, ART blocks reflective access to
+`libcore.io.Os.mmap`, ArtMethod fields, and `setHiddenApiExemptions`.
+Slim defeats this with the four-tier cascade described in
+[Production readiness](#%EF%B8%8F-production-readiness). The last tier —
+used on API 36 — locates the `art::Runtime` singleton by ELF-parsing
+`libart.so` for `art::Runtime::instance_`, then probes the Runtime's
+memory for the `hidden_api_policy_` field and writes `kDisabled`. The
+discovered offset is cached at `<cacheDir>/nk_policy.bin`.
+
+For the full architectural walkthrough — including how the encoder's
+two-pass label fixup works, how the kernel cache is keyed, and the
+concurrency model — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
+
+## 📖 Background — a note before we start
+
+This is the longer story behind Slim — the boundaries it crosses, why
+they're crossable, and what it felt like figuring that out. The SDK
+quick-start is up top; everything below is for systems-curious readers.
+
+This started as something I bumped into while reading about **userspace
+boundaries** on Android — the invisible lines the OS and the runtime
+draw *inside* your own process. The JNI boundary between Kotlin and
+native code. The W^X boundary that says no page is both writable and
+executable. The hidden-API boundary that locks you out of ART's
+internals starting on API 28.
+
+What grabbed me is that most of these boundaries are *convention, not
+silicon* — they're enforced by checks running in the same process you
+are. ART, for instance, links every Kotlin method to a function pointer
+(`entry_point_from_quick_compiled_code_`) that the dispatcher reads on
+every call. If you can flip that pointer to a page of your own ARM64
+machine code, the runtime jumps into your code instead of the
+JIT-compiled body — no JNI hop, no separate `.so`, no NDK build. Your
+kernel returns, the runtime keeps going like nothing happened.
+
+Slim is a working answer to *"what if the boundary between Kotlin and
+native code is just a writable pointer?"* — packaged as a small SDK so
+I could reuse the trick for tight SIMD kernels without paying NDK's
+startup cost on every project.
+
+> [!TIP]
+> If you came for the architecture story, keep going to
+> [BOSS FIGHT](#-boss-fight--how-it-works) and the
+> [Architecture doc](docs/ARCHITECTURE.md), which walks every line we
+> cross: memfd dual-map (W^X), entry-point hijack (managed/native),
+> four-tier hidden-API bypass.
+
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
+
 ## ⚠️ Caveats and limitations
 
-> [!CAUTION]
-> **`DANGER — INVASIVE OPERATIONS`** Slim does invasive things to the runtime. Read these before shipping.
-
-<details>
-<summary><b>Hidden-API bypass is invasive</b></summary>
-
-Slim performs reflection that's blocked by default on API 28+. The
-bypass works but is exactly the kind of thing anti-tamper SDKs
-(DexProtector, Promon SHIELD, AppDome) flag. If your app embeds one of
-those, evaluate compatibility before shipping.
-</details>
+> [!NOTE]
+> Most "is this safe to ship?" questions are answered in
+> [Production readiness](#%EF%B8%8F-production-readiness). The items
+> below are scope/feature limits, not safety concerns.
 
 <details>
 <summary><b>Single-writer per <code>KernelHandle</code></b></summary>
