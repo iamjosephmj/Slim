@@ -442,6 +442,49 @@ suspend fun slim(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Slim.preview { } — disassemble without ART machinery
+// ---------------------------------------------------------------------------
+
+/**
+ * Compile the kernel described by [body] and return its disassembly as a
+ * human-readable string. No ART machinery, no memfd allocation, and no
+ * [Slim.initialize] call is required — [preview] is purely a compile +
+ * format step.
+ *
+ * The disassembly is annotated with label names registered via
+ * [SlimScope.bindLabel]. When [Slim.debug] is `true` at the time
+ * [preview] is called, each instruction line is additionally annotated
+ * with the Kotlin source file and line number where it was emitted.
+ *
+ * **Note:** Unlike [slim], [preview] does not inject the data-pointer
+ * prologue (`movz/movk` placeholder sequence) or the trailing `ret`.
+ * The output shows only the instructions you write inside [body].
+ *
+ * ```
+ * Slim.debug = true
+ * println(Slim.preview {
+ *     mov(X1, X0)
+ *     val loop = bindLabel("loop")
+ *     ld1(V0, X1, S4)
+ *     sub(W3, W3, 4)
+ *     cbnz(W3, loop)
+ * })
+ * ```
+ *
+ * @param body the kernel body. Receives a [SlimScope]; emit ARM64
+ *   instructions and use [SlimScope.bindLabel] / [SlimScope.label] /
+ *   `cbnz` / `b` for control flow.
+ * @return formatted disassembly string.
+ */
+fun Slim.preview(body: SlimScope.() -> Unit): String {
+    val scope = SlimScope()
+    scope.body()
+    val bytes = scope.asm.assemble()
+    val metadata = scope.toMetadata()
+    return Disassembler.format(bytes, metadata)
+}
+
 private fun compileAndCache(body: SlimScope.() -> Unit): CachedSlimKernel {
     check(NativeKt.isReady) { "Slim.initialize must be called before slim {}" }
     val scope = SlimScope()
@@ -596,6 +639,22 @@ class SlimScope internal constructor() : Arm64Emitter() {
      */
     fun bindLabel(): Asm.Label = asm.bindLabel()
 
+    /**
+     * Named variant of [bindLabel]. The [name] is recorded in [toMetadata]
+     * and appears in disassembly output as `name:` on its own line before
+     * the instruction at this offset.
+     *
+     * ```
+     * val loop = bindLabel("loop")
+     * // ... body ...
+     * cbnz(W3, loop)             // disassembly shows "loop:" label line
+     * ```
+     *
+     * @param name the label name to display in disassembly.
+     * @return a fresh label, bound at the current position.
+     */
+    fun bindLabel(name: String): Asm.Label = asm.bindLabel(name)
+
     /** Unconditional branch to [target]. Range: ±128 MB. */
     fun b(target: Asm.Label) { asm.b(target) }
 
@@ -654,7 +713,16 @@ internal class CachedSlimKernel(
     val mutex: Mutex = Mutex(),
     /** Metadata captured at compile time (source frames + label names). */
     val metadata: KernelMetadata = KernelMetadata.EMPTY,
-)
+    /** Assembled byte image; retained for disassembly without re-assembling. */
+    val bytes: ByteArray = ByteArray(0),
+) {
+    /**
+     * Returns a human-readable disassembly of this kernel's byte image,
+     * annotated with label names and (if [Slim.debug] was set at compile
+     * time) source file/line references.
+     */
+    fun disassemble(): String = Disassembler.format(bytes, metadata)
+}
 
 /** Wrap ByteArray for use as a HashMap key (content equality + hash). */
 private class KernelKey(val bytes: ByteArray) {
@@ -696,7 +764,7 @@ private object SlimCache {
         val existing = map[key]
         if (existing != null) return existing
         val handle = NativeKt.compileKernel(template)
-        val cached = CachedSlimKernel(handle, metadata = metadata)
+        val cached = CachedSlimKernel(handle, metadata = metadata, bytes = template.bytes)
         map[key] = cached
         return cached
     }
