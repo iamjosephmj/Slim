@@ -57,8 +57,50 @@ codes. The runtime handles JIT memory, ART internals, and dispatch.
 
 ## How fast?
 
-**6.95× faster than JIT-optimized Kotlin scalar** on a 16 MB SAXPY
-kernel (Samsung S24, Cortex-X4, Android 16):
+Slim sits between scalar Kotlin (the floor — JIT-compiled, no SIMD) and
+hand-tuned native C++ with NEON intrinsics (the ceiling — what you'd
+otherwise ship in a `.so`). Two numbers worth knowing: how close to the
+native ceiling, and how much over the scalar floor.
+
+### vs hand-tuned native NEON — multi-device
+
+How close does Slim's runtime-emitted code get to **hand-written native
+NEON** compiled with `clang -O3`? The
+[`:bench`](https://github.com/iamjosephmj/Slim/tree/main/bench) module
+answers fair-and-square: same fused 8-stage NEON pipeline both sides,
+same direct `ByteBuffer`, same thread, byte-identical output enforced
+by a correctness gate — only the dispatch mechanism differs.
+
+Ran on 7 real devices via a cloud test farm:
+
+<table>
+<tr>
+<td align="center" width="33%"><a href="https://github.com/iamjosephmj/Slim/blob/main/bench/bench-results/pixel-10-pro-xl-android17.png"><img src="https://raw.githubusercontent.com/iamjosephmj/Slim/main/bench/bench-results/pixel-10-pro-xl-android17.png" alt="Pixel 10 Pro XL — Android 17" width="200"/></a><br/><sub>Pixel 10 Pro XL · Android 17</sub></td>
+<td align="center" width="33%"><a href="https://github.com/iamjosephmj/Slim/blob/main/bench/bench-results/galaxy-note20-android13.png"><img src="https://raw.githubusercontent.com/iamjosephmj/Slim/main/bench/bench-results/galaxy-note20-android13.png" alt="Galaxy Note20 — Android 13" width="200"/></a><br/><sub>Galaxy Note20 · Android 13</sub></td>
+<td align="center" width="33%"><a href="https://github.com/iamjosephmj/Slim/blob/main/bench/bench-results/oppo-a94-5g-android11.png"><img src="https://raw.githubusercontent.com/iamjosephmj/Slim/main/bench/bench-results/oppo-a94-5g-android11.png" alt="Oppo A94 5G — Android 11" width="200"/></a><br/><sub>Oppo A94 5G · Android 11</sub></td>
+</tr>
+</table>
+
+| Device | Android | 1080p (2 MB) | 4K (8 MB) |
+|---|:-:|:-:|:-:|
+| Pixel 10 Pro XL | 17 | 11% slower | 6% slower |
+| Galaxy A54 5G | 16 | 13% slower | 7% slower |
+| Oppo Reno13 F | 15 | 12% slower | **TIE** |
+| Galaxy A23 5G | 14 | 9% slower | **TIE** |
+| Galaxy Note20 | 13 | **TIE** | **TIE** |
+| Galaxy S20 FE 2022 | 12 | 13% slower | **TIE** |
+| Oppo A94 5G | 11 | 7% slower | **TIE** |
+
+**TIE = Slim within 5% of JNI on that cell.** Across 7 devices, three
+vendors (Google, Samsung, Oppo), and six Android versions (11 → 17),
+Slim never loses by more than 13% at 1080p, and matches JNI on 5 of 7
+devices at 4K. Full screenshots and the bench module live in the
+[`bench/`](https://github.com/iamjosephmj/Slim/tree/main/bench) directory.
+
+### vs scalar Kotlin
+
+The reason a SIMD runtime exists at all. On a Samsung S24 (Cortex-X4,
+Android 16), a 16 MB SAXPY kernel:
 
 | Path | Time | Throughput | Speedup |
 |:--|---:|---:|---:|
@@ -66,8 +108,12 @@ kernel (Samsung S24, Cortex-X4, Android 16):
 | Slim with `FloatArray` (eager copy) | 2.22 ms | 7.2 GB/s | 2.4× |
 | Slim with `Floats` (zero-copy) | **0.76 ms** | **23.4 GB/s** | **6.95×** |
 
+### Operational characteristics
+
 Per-call dispatch overhead: **~3 µs**. Concurrent dispatch:
-**~3 K calls/sec** across 4 coroutines.
+**~3 K calls/sec** across 4 coroutines. Cold start: ~3 ms warm /
+~10 ms uncached. Probe pool serves up to **8 in-flight** kernels
+before blocking.
 
 ---
 

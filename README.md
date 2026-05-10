@@ -502,33 +502,11 @@ The remaining risks are vendor-ROM novelty (mitigated by the cascade
 
 ## 📊 Performance
 
-On a Samsung S24 (Cortex-X4, Android 16), 1024×1024 RGBA-as-float kernel
-applying `y = 0.5·x`:
+Slim sits between scalar Kotlin (the floor — JIT-compiled, no SIMD) and hand-tuned native C++ with NEON intrinsics (the ceiling — what you'd otherwise ship in a `.so`). Two numbers worth knowing: how close to the native ceiling, and how much over the scalar floor.
 
-```mermaid
-xychart-beta
-    title "Throughput (GB/s) — higher is better"
-    x-axis ["Kotlin scalar", "Slim (FloatArray)", "Slim (Floats, zero-copy)"]
-    y-axis "GB/s" 0 --> 25
-    bar [3.0, 7.2, 23.4]
-```
+### vs hand-tuned native NEON — multi-device
 
-| Path | Time (ms) | Throughput | Notes |
-|---|---:|---:|---|
-| Kotlin scalar | 5.32 | 3.0 GB/s | Hot-path JIT'd, best of 10 |
-| Slim with `FloatArray` (eager copy) | 2.22 | 7.2 GB/s | Includes 2× heap↔native copy |
-| Slim with `Floats` (zero-copy) | **0.76** | **23.4 GB/s** | **6.95× over Kotlin** |
-
-| Cold start | Per-call overhead | Concurrent dispatch |
-|:-:|:-:|:-:|
-| ~3 ms with warm caches<br/>~10 ms uncached | ~3 µs<br/>(probe-slot + EP patch + invoke) | ~3 K calls/sec<br/>4 coroutines × 50 calls = 67 ms |
-
-> [!TIP]
-> Probe pool serves up to **8 in-flight** kernels before blocking. Different kernels run in parallel; same-kernel calls serialize via a per-handle `Mutex`.
-
-### Apples-to-apples vs JNI — multi-device
-
-The numbers above compare Slim against scalar Kotlin. The question that comes up next is "how close does Slim get to **hand-written native NEON**?" The [`:bench`](bench/) module answers that fair-and-square:
+How close does Slim's runtime-emitted code get to **hand-written native NEON** compiled with `clang -O3`? The [`:bench`](bench/) module answers fair-and-square:
 
 - **Same algorithm.** Both backends run an 8-stage fused NEON pipeline (`invert → contrast → brighten(40) → darken(20)`, repeated). All 8 stages execute back-to-back in NEON registers per 16-byte chunk — one load, one store per byte for the whole pipeline.
 - **Same instruction stream.** Slim's kernel is emitted at runtime from a Kotlin DSL; JNI's is written by hand using `arm_neon.h` and compiled with `clang -O3 -march=armv8-a+simd`. Algorithmically identical.
@@ -575,6 +553,33 @@ adb shell am start -n com.example.slim.bench/.BenchActivity
 
 Tap **Run**. The on-device UI shows a dispatch-baseline card and one card per image size with median, p95, p99, and throughput. **Copy CSV** exports the raw rows to your clipboard.
 
+### vs scalar Kotlin
+
+The reason a SIMD runtime exists at all. On a Samsung S24 (Cortex-X4, Android 16), a 1024×1024 RGBA-as-float kernel applying `y = 0.5·x`:
+
+```mermaid
+xychart-beta
+    title "Throughput (GB/s) — higher is better"
+    x-axis ["Kotlin scalar", "Slim (FloatArray)", "Slim (Floats, zero-copy)"]
+    y-axis "GB/s" 0 --> 25
+    bar [3.0, 7.2, 23.4]
+```
+
+| Path | Time (ms) | Throughput | Notes |
+|---|---:|---:|---|
+| Kotlin scalar | 5.32 | 3.0 GB/s | Hot-path JIT'd, best of 10 |
+| Slim with `FloatArray` (eager copy) | 2.22 | 7.2 GB/s | Includes 2× heap↔native copy |
+| Slim with `Floats` (zero-copy) | **0.76** | **23.4 GB/s** | **6.95× over Kotlin** |
+
+### Operational characteristics
+
+| Cold start | Per-call overhead | Concurrent dispatch |
+|:-:|:-:|:-:|
+| ~3 ms with warm caches<br/>~10 ms uncached | ~3 µs<br/>(probe-slot + EP patch + invoke) | ~3 K calls/sec<br/>4 coroutines × 50 calls = 67 ms |
+
+> [!TIP]
+> Probe pool serves up to **8 in-flight** kernels before blocking. Different kernels run in parallel; same-kernel calls serialize via a per-handle `Mutex`.
+
 ---
 
 ## 📱 Supported devices
@@ -583,7 +588,7 @@ Tap **Run**. The on-device UI shows a dispatch-baseline card and one card per im
 |---|---|
 | **API** | 26+ (Android 8.0 and up) |
 | **ABI** | `arm64-v8a` only |
-| **Confirmed on-device** | AOSP-derived Android 8–17 across Pixel, Samsung One UI, and Oppo ColorOS — see the [JNI-parity bench](#apples-to-apples-vs-jni--multi-device) for a 7-device sweep. The bypass cascade gracefully falls through technique-by-technique on novel ROMs; if all four fail, `Slim.initialize` returns `false` and `lastError` reports which step gave up. |
+| **Confirmed on-device** | AOSP-derived Android 8–17 across Pixel, Samsung One UI, and Oppo ColorOS — see the [JNI-parity bench](#vs-hand-tuned-native-neon--multi-device) for a 7-device sweep. The bypass cascade gracefully falls through technique-by-technique on novel ROMs; if all four fail, `Slim.initialize` returns `false` and `lastError` reports which step gave up. |
 
 The runtime requires:
 
