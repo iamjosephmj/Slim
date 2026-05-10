@@ -11,19 +11,19 @@ inline in Kotlin and have them executed by ART as if they were
 JIT-compiled Kotlin — no JNI per call, no NDK build, no separate
 `.so`.
 
-[Get started :material-arrow-right:](guide/introduction.md){ .md-button .md-button--primary }
+[Get started :material-arrow-right:](guide/index.md){ .md-button .md-button--primary }
 [GitHub :fontawesome-brands-github:](https://github.com/iamjosephmj/Slim){ .md-button }
 [JitPack :fontawesome-solid-cube:](https://jitpack.io/#iamjosephmj/Slim){ .md-button }
 
 ---
 
-!!! abstract "New: Chapter 1 of the guide is live"
-    [**Write your first NEON kernel**](guide/introduction.md) walks
-    you through brightening a 16 MB float buffer **7× faster than
-    JIT-compiled Kotlin** in 9 lines of inline DSL — line by line,
-    with the disassembled output, a runnable benchmark, and a
-    "what just happened?" tour of the ART entry-point hijack.
-    No prior assembly experience required.
+!!! abstract "Start here"
+    The [**Guide**](guide/index.md) walks you through writing your
+    first NEON kernel — brightening a 16 MB float buffer **~7× faster
+    than JIT-compiled Kotlin** in 9 lines of inline DSL. Line by line,
+    with the disassembled output, a runnable benchmark, and a "what
+    just happened?" tour of the ART entry-point hijack. No prior
+    assembly experience required.
 
 ---
 

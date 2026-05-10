@@ -49,9 +49,7 @@ theme:
 
 nav:
   - Home: index.md
-  - Guide:
-      - Overview: guide/index.md
-      - 1. Introduction: guide/introduction.md
+  - Guide: guide/index.md
   - Cookbook: COOKBOOK.md
   - Architecture: ARCHITECTURE.md
   - Contributing: CONTRIBUTING.md
