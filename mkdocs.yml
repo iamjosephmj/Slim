@@ -27,8 +27,6 @@ theme:
   features:
     - navigation.tabs
     - navigation.tabs.sticky
-    - navigation.sections
-    - navigation.indexes
     - navigation.top
     - navigation.tracking
     - navigation.footer
@@ -52,7 +50,7 @@ theme:
 nav:
   - Home: index.md
   - Guide:
-      - guide/index.md
+      - Overview: guide/index.md
       - 1. Introduction: guide/introduction.md
   - Cookbook: COOKBOOK.md
   - Architecture: ARCHITECTURE.md
