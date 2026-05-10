@@ -735,7 +735,19 @@ internal object MemoryExecutor {
         }
 
         companion object {
-            private const val PAGE = 4096L
+            // Page size queried from the kernel at first use. Android 15+
+            // devices on some SoCs use 16 KB pages instead of the historical
+            // 4 KB; using `Os.sysconf(_SC_PAGESIZE)` gives us the right value
+            // regardless of device. The lookup is cached for the life of the
+            // process via `lazy`. Falls back to 4 KB if sysconf fails (e.g.,
+            // on test JVMs without OsConstants linked).
+            private val PAGE: Long by lazy {
+                try {
+                    android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
+                } catch (_: Throwable) {
+                    4096L
+                }
+            }
 
             fun allocate(os: LibcoreOs, size: Int): Region {
                 return allocateInternal(os, size, executable = true)

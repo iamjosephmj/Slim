@@ -19,7 +19,15 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += listOf("-std=c++17", "-fvisibility=hidden")
-                arguments += "-DANDROID_STL=c++_static"
+                arguments += listOf(
+                    "-DANDROID_STL=c++_static",
+                    // Enable NDK r26+'s 16 KB page-size support. Combined with
+                    // the explicit `-Wl,-z,max-page-size=16384` in CMakeLists,
+                    // this makes the .so loadable on devices using 16 KB pages
+                    // (Android 15+ on some SoCs; required for Play targeting
+                    // API 35+ from Nov 2025).
+                    "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
+                )
             }
         }
 
