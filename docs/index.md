@@ -17,6 +17,16 @@ JIT-compiled Kotlin — no JNI per call, no NDK build, no separate
 
 ---
 
+!!! abstract "New: Chapter 1 of the guide is live"
+    [**Write your first NEON kernel**](guide/introduction.md) walks
+    you through brightening a 16 MB float buffer **7× faster than
+    JIT-compiled Kotlin** in 9 lines of inline DSL — line by line,
+    with the disassembled output, a runnable benchmark, and a
+    "what just happened?" tour of the ART entry-point hijack.
+    No prior assembly experience required.
+
+---
+
 ## What it looks like
 
 ```kotlin
