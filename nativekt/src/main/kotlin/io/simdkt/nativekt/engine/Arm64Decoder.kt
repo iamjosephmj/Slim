@@ -10,6 +10,7 @@ object Arm64Decoder {
         isDataProcImm(op)         -> decodeDataProcImm(op)
         isDataProcReg(op)         -> decodeDataProcReg(op)
         isLoadStore(op)           -> decodeLoadStore(op)
+        isDataProcSimd(op)        -> decodeDataProcSimd(op)
         else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
     }
 
@@ -395,6 +396,289 @@ object Arm64Decoder {
     // Data-processing — register  (bits 27..25 = 0b101)
     // -----------------------------------------------------------------
 
+    // -----------------------------------------------------------------
+    // Data-processing — SIMD/FP  (bits 27..25 = 0b111)
+    // Covers: FP vector three-same, FP vector unary, scalar FP arithmetic,
+    //         scalar FP conversions, scalar FP compare, scalar FP unary.
+    // -----------------------------------------------------------------
+
+    // bits 27..25 = 0b111 (data-processing — SIMD/FP)
+    private fun isDataProcSimd(op: Int): Boolean = (op ushr 25) and 0b111 == 0b111
+
+    private fun decodeDataProcSimd(op: Int): DecodedInsn {
+        // --- Scalar FP (bits 28..24 = 11110) ---
+        if ((op ushr 24) and 0x1F == 0b11110) return decodeScalarFp(op)
+
+        // --- Vector FP unary / two-reg-misc (bits 28..24 = 01110, bit21=1,
+        //     bits 17..16 = 01, bits 11..10 = 10) ---
+        // Mask: bit31 | bits28..24 | bit21 | bit17 | bit16 | bits11..10
+        val fpVecUnaryMask = 0x9F230C00.toInt()
+        val fpVecUnaryVal  = 0x0E210800.toInt()
+        if ((op and fpVecUnaryMask) == fpVecUnaryVal) return decodeFpVecUnary(op)
+
+        // --- Vector FP three-same (bits 28..24 = 01110, bit21 = 1, bit10 = 1) ---
+        // Mask captures bit31=0, bits28..24, bit21, bit10.
+        val fpVec3Mask = 0x9F200400.toInt()
+        val fpVec3Val  = 0x0E200400.toInt()
+        if ((op and fpVec3Mask) == fpVec3Val) return decodeFpVec3(op)
+
+        return DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+    }
+
+    // -----------------------------------------------------------------
+    // Scalar FP dispatch: bits 28..24 = 11110
+    // Sub-families distinguished by bits 31..29, 21, 15..10.
+    // -----------------------------------------------------------------
+
+    private fun decodeScalarFp(op: Int): DecodedInsn {
+        // Scalar FP unary two-reg-misc (frecpe/frsqrte scalar):
+        //   bits 31..30 = 01, bits 20..16 = 00001, bits 11..10 = 10
+        //   Mask: 0xDF3F0C00, Val: 0x5E210800
+        val scUnaryMask = 0xDF3F0C00.toInt()
+        val scUnaryVal  = 0x5E210800.toInt()
+        if ((op and scUnaryMask) == scUnaryVal) return decodeFpScalarUnary(op)
+
+        // FP scalar conversion (fcvtzs/scvtf GP↔FP):
+        //   bits 30..29 = 00, bit21 = 1, bits 15..10 = 000000
+        //   Mask: 0x7F20FC00, Val: 0x1E200000
+        val scConvMask = 0x7F20FC00.toInt()
+        val scConvVal  = 0x1E200000.toInt()
+        if ((op and scConvMask) == scConvVal) return decodeFpScalarConv(op)
+
+        // FP scalar compare (fcmp):
+        //   bits 31..24 = 00011110, bit21 = 1, bits 15..10 = 001000
+        //   Mask: 0xFF20FC00, Val: 0x1E202000
+        val scCmpMask = 0xFF20FC00.toInt()
+        val scCmpVal  = 0x1E202000.toInt()
+        if ((op and scCmpMask) == scCmpVal) return decodeFpCmpScalar(op)
+
+        // FP scalar conditional select (fcsel):
+        //   bits 31..24 = 00011110, bit21 = 1, bits 11..10 = 11
+        //   Mask: 0xFF200C00, Val: 0x1E200C00
+        val scCselMask = 0xFF200C00.toInt()
+        val scCselVal  = 0x1E200C00.toInt()
+        if ((op and scCselMask) == scCselVal) return decodeFpCsel(op)
+
+        // FP scalar three-register (fadd/fsub/fmul/fdiv/fminnm/fmaxnm scalar):
+        //   bits 31..24 = 00011110, bit21 = 1, bits 11..10 = 10
+        //   Mask: 0xFF200C00, Val: 0x1E200800
+        val scThreeMask = 0xFF200C00.toInt()
+        val scThreeVal  = 0x1E200800.toInt()
+        if ((op and scThreeMask) == scThreeVal) return decodeFpScalar3(op)
+
+        return DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+    }
+
+    // FP scalar three-register: 00 0 11110 type 1 Rm op[15:12] 10 Rn Rd
+    private fun decodeFpScalar3(op: Int): DecodedInsn {
+        val type  = (op ushr 22) and 0x3   // 00=S, 01=D
+        val rm    = (op ushr 16) and 0x1F
+        val op4   = (op ushr 12) and 0xF   // bits 15..12
+        val rn    = (op ushr  5) and 0x1F
+        val rd    = op and 0x1F
+        val ftype = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        val mnem = when (op4) {
+            0b0000 -> "fmul"
+            0b0001 -> "fdiv"
+            0b0010 -> "fadd"
+            0b0011 -> "fsub"
+            0b0110 -> "fmaxnm"
+            0b0111 -> "fminnm"
+            else   -> "?"
+        }
+        return DecodedInsn(
+            mnem,
+            listOf(
+                Operand.FpReg("$ftype$rd"),
+                Operand.FpReg("$ftype$rn"),
+                Operand.FpReg("$ftype$rm"),
+            ),
+            op,
+        )
+    }
+
+    // FP scalar conversion (GP↔FP): sf 0 0 11110 type 1 rmode opcode 000000 Rn Rd
+    private fun decodeFpScalarConv(op: Int): DecodedInsn {
+        val sf    = (op ushr 31) and 1
+        val type  = (op ushr 22) and 0x3
+        val rmode = (op ushr 19) and 0x3
+        val opc   = (op ushr 16) and 0x7
+        val rn    = (op ushr  5) and 0x1F
+        val rd    = op and 0x1F
+        val gpPrefix = if (sf == 1) "x" else "w"
+        val fpType   = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        return when {
+            // fcvtzs: rmode=11, opcode=000 → GP(rd) = int(FP(rn))
+            rmode == 0b11 && opc == 0b000 -> DecodedInsn(
+                "fcvtzs",
+                listOf(Operand.Reg("$gpPrefix$rd"), Operand.FpReg("$fpType$rn")),
+                op,
+            )
+            // scvtf: rmode=00, opcode=010 → FP(rd) = float(GP(rn))
+            rmode == 0b00 && opc == 0b010 -> DecodedInsn(
+                "scvtf",
+                listOf(Operand.FpReg("$fpType$rd"), Operand.Reg("$gpPrefix$rn")),
+                op,
+            )
+            else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+    }
+
+    // FP scalar compare: 00 0 11110 type 1 Rm 001000 Rn opc2[4:0]
+    private fun decodeFpCmpScalar(op: Int): DecodedInsn {
+        val type  = (op ushr 22) and 0x3
+        val rm    = (op ushr 16) and 0x1F
+        val rn    = (op ushr  5) and 0x1F
+        val opc2  = op and 0x1F   // bit3=1 → compare with #0.0
+        val fpType = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        return if ((opc2 and 0b01000) != 0) {
+            DecodedInsn("fcmp", listOf(Operand.FpReg("$fpType$rn")), op)
+        } else {
+            DecodedInsn("fcmp", listOf(Operand.FpReg("$fpType$rn"), Operand.FpReg("$fpType$rm")), op)
+        }
+    }
+
+    // FP conditional select: 00 0 11110 type 1 Rm cond 11 Rn Rd
+    private fun decodeFpCsel(op: Int): DecodedInsn {
+        val type = (op ushr 22) and 0x3
+        val rm   = (op ushr 16) and 0x1F
+        val cond = (op ushr 12) and 0xF
+        val rn   = (op ushr  5) and 0x1F
+        val rd   = op and 0x1F
+        val fpType = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        return DecodedInsn(
+            "fcsel",
+            listOf(
+                Operand.FpReg("$fpType$rd"),
+                Operand.FpReg("$fpType$rn"),
+                Operand.FpReg("$fpType$rm"),
+                Operand.CondCode(condName(cond)),
+            ),
+            op,
+        )
+    }
+
+    // Scalar FP unary (frecpe/frsqrte scalar):
+    //   01 U 11110 a sz 1 00001 opcode 10 Rn Rd
+    private fun decodeFpScalarUnary(op: Int): DecodedInsn {
+        val u      = (op ushr 29) and 1
+        val sz     = (op ushr 22) and 1   // 0=S, 1=D
+        val opcode = (op ushr 12) and 0xF
+        val rn     = (op ushr  5) and 0x1F
+        val rd     = op and 0x1F
+        val fpType = if (sz == 0) "s" else "d"
+        val mnem = when (Pair(opcode, u)) {
+            0b1101 to 0 -> "frecpe"
+            0b1101 to 1 -> "frsqrte"
+            else -> "?"
+        }
+        return DecodedInsn(mnem, listOf(Operand.FpReg("$fpType$rd"), Operand.FpReg("$fpType$rn")), op)
+    }
+
+    // -----------------------------------------------------------------
+    // Vector FP three-same: 0 Q U 01110 sz 1 Rm opcode 1 Rn Rd
+    //   bits 28..24 = 01110, bit21 = 1, bit10 = 1
+    //   FP opcodes always have opcode[4:3] = 0b11 (i.e. opcode >= 24 = 0b11000)
+    // -----------------------------------------------------------------
+
+    private fun decodeFpVec3(op: Int): DecodedInsn {
+        val q      = (op ushr 30) and 1
+        val u      = (op ushr 29) and 1
+        val sz     = (op ushr 22) and 0x3   // bits 23..22
+        val opcode = (op ushr 11) and 0x1F  // bits 15..11
+        val rm     = (op ushr 16) and 0x1F
+        val rn     = (op ushr  5) and 0x1F
+        val rd     = op and 0x1F
+
+        // Non-FP opcodes (opcode bits[4:3] != 11) pass through as Unknown.
+        if ((opcode ushr 3) and 0b11 != 0b11) {
+            return DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+
+        // sz[0] selects S vs D; sz[1] selects the "neg" variant (sub/mls/min/minnm etc.)
+        val szLow  = sz and 1        // 0 = single, 1 = double
+        val szHigh = (sz ushr 1) and 1
+
+        val arr = if (szLow == 0) (if (q == 1) Arm64.VArr.S4 else Arm64.VArr.S2)
+                  else Arm64.VArr.D2
+
+        val mnem = when (Triple(opcode, u, szHigh)) {
+            // FADD: u=0, szH=0; FSUB: u=0, szH=1
+            Triple(0b11010, 0, 0) -> "fadd"
+            Triple(0b11010, 0, 1) -> "fsub"
+            // FMUL: u=1, szH=0
+            Triple(0b11011, 1, 0) -> "fmul"
+            // FDIV: u=1, szH=0
+            Triple(0b11111, 1, 0) -> "fdiv"
+            // FMLA: u=0, szH=0; FMLS: u=0, szH=1
+            Triple(0b11001, 0, 0) -> "fmla"
+            Triple(0b11001, 0, 1) -> "fmls"
+            // FMAX: u=0, szH=0; FMIN: u=0, szH=1
+            Triple(0b11110, 0, 0) -> "fmax"
+            Triple(0b11110, 0, 1) -> "fmin"
+            // FMAXNM: u=0, szH=0; FMINNM: u=0, szH=1
+            Triple(0b11000, 0, 0) -> "fmaxnm"
+            Triple(0b11000, 0, 1) -> "fminnm"
+            // FRECPS: u=0, szH=0; FRSQRTS: u=0, szH=1
+            Triple(0b11111, 0, 0) -> "frecps"
+            Triple(0b11111, 0, 1) -> "frsqrts"
+            // FCMEQ: u=0, szH=0; FCMGE: u=1, szH=0; FCMGT: u=1, szH=1
+            Triple(0b11100, 0, 0) -> "fcmeq"
+            Triple(0b11100, 1, 0) -> "fcmge"
+            Triple(0b11100, 1, 1) -> "fcmgt"
+            else -> "?"
+        }
+        return DecodedInsn(
+            mnem,
+            listOf(
+                Operand.VecReg("v$rd", arr),
+                Operand.VecReg("v$rn", arr),
+                Operand.VecReg("v$rm", arr),
+            ),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // Vector FP unary two-reg misc: 0 Q U 01110 a sz 1 00001 opcode 10 Rn Rd
+    //   bits 28..24 = 01110, bit21 = 1, bits 17..16 = 01, bits 11..10 = 10
+    // -----------------------------------------------------------------
+
+    private fun decodeFpVecUnary(op: Int): DecodedInsn {
+        val q      = (op ushr 30) and 1
+        val u      = (op ushr 29) and 1
+        val a      = (op ushr 23) and 1   // bit23
+        val sz     = (op ushr 22) and 1   // bit22: 0=S, 1=D
+        val opcode = (op ushr 12) and 0xF // bits 15..12
+        val rn     = (op ushr  5) and 0x1F
+        val rd     = op and 0x1F
+        val arr = if (sz == 0) (if (q == 1) Arm64.VArr.S4 else Arm64.VArr.S2)
+                  else Arm64.VArr.D2
+        val mnem = when (Triple(opcode, u, a)) {
+            // FRECPE: u=0, a=1, opcode=1101
+            Triple(0b1101, 0, 1) -> "frecpe"
+            // FRSQRTE: u=1, a=1, opcode=1101
+            Triple(0b1101, 1, 1) -> "frsqrte"
+            // SCVTF: u=0, a=0, opcode=1101
+            Triple(0b1101, 0, 0) -> "scvtf"
+            // FCVTZS: u=0, a=1, opcode=1011
+            Triple(0b1011, 0, 1) -> "fcvtzs"
+            else -> "?"
+        }
+        return DecodedInsn(
+            mnem,
+            listOf(
+                Operand.VecReg("v$rd", arr),
+                Operand.VecReg("v$rn", arr),
+            ),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // Data-processing — register  (bits 27..25 = 0b101)
+    // -----------------------------------------------------------------
+
     // bits 27..25 = 0b101 (data-processing — register)
     private fun isDataProcReg(op: Int): Boolean = (op ushr 25) and 0b111 == 0b101
 
@@ -753,8 +1037,10 @@ object Arm64Decoder {
     //   10 V=1 → Q register pair (SIMD 128-bit), scale=4
     // -----------------------------------------------------------------
 
+    // Load/store pair: bits 29..27 = 101 AND bit25 = 0 (mode bits 25..23 ∈ {001,010,011}).
+    // Bit25 distinguishes from SIMD data-processing (fpVec3 uses bit25=1).
     private fun isLoadStorePair(op: Int): Boolean =
-        (op ushr 27) and 0b111 == 0b101
+        (op ushr 27) and 0b111 == 0b101 && (op ushr 25) and 1 == 0
 
     private fun decodeLoadStorePair(op: Int): DecodedInsn {
         val opc  = (op ushr 30) and 0b11

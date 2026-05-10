@@ -772,6 +772,163 @@ class Arm64DecoderTest {
         )
     }
 
+    // ------------------------------------------------------------------
+    // NEON FP vector: paired assertDec for every assertEnc in Arm64Test.kt:fpVector
+    // ------------------------------------------------------------------
+
+    @Test fun fpVector() {
+        // fadd v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 115
+        assertDec(
+            0x4e22d420.toInt(),
+            DecodedInsn(
+                "fadd",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4e22d420.toInt(),
+            ),
+        )
+        // fadd v0.2d, v1.2d, v2.2d  — Arm64Test.kt:fpVector line 116
+        assertDec(
+            0x4e62d420.toInt(),
+            DecodedInsn(
+                "fadd",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.D2),
+                    Operand.VecReg("v1", Arm64.VArr.D2),
+                    Operand.VecReg("v2", Arm64.VArr.D2),
+                ),
+                0x4e62d420.toInt(),
+            ),
+        )
+        // fsub v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 117
+        assertDec(
+            0x4ea2d420.toInt(),
+            DecodedInsn(
+                "fsub",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea2d420.toInt(),
+            ),
+        )
+        // fmul v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 118
+        assertDec(
+            0x6e22dc20.toInt(),
+            DecodedInsn(
+                "fmul",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x6e22dc20.toInt(),
+            ),
+        )
+        // fdiv v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 119
+        assertDec(
+            0x6e22fc20.toInt(),
+            DecodedInsn(
+                "fdiv",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x6e22fc20.toInt(),
+            ),
+        )
+        // fmla v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 120
+        assertDec(
+            0x4e22cc20.toInt(),
+            DecodedInsn(
+                "fmla",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4e22cc20.toInt(),
+            ),
+        )
+        // fmls v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 121
+        assertDec(
+            0x4ea2cc20.toInt(),
+            DecodedInsn(
+                "fmls",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea2cc20.toInt(),
+            ),
+        )
+        // fmin v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 122
+        assertDec(
+            0x4ea2f420.toInt(),
+            DecodedInsn(
+                "fmin",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea2f420.toInt(),
+            ),
+        )
+        // fmax v0.4s, v1.4s, v2.4s  — Arm64Test.kt:fpVector line 123
+        assertDec(
+            0x4e22f420.toInt(),
+            DecodedInsn(
+                "fmax",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4e22f420.toInt(),
+            ),
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // NEON FP scalar: paired assertDec for every assertEnc in Arm64Test.kt:fpScalar
+    // ------------------------------------------------------------------
+
+    @Test fun fpScalar() {
+        // fadd s0, s1, s2  — Arm64Test.kt:fpScalar line 127
+        assertDec(
+            0x1e222820.toInt(),
+            DecodedInsn(
+                "fadd",
+                listOf(
+                    Operand.FpReg("s0"),
+                    Operand.FpReg("s1"),
+                    Operand.FpReg("s2"),
+                ),
+                0x1e222820.toInt(),
+            ),
+        )
+        // fadd d0, d1, d2  — Arm64Test.kt:fpScalar line 128
+        assertDec(
+            0x1e622820.toInt(),
+            DecodedInsn(
+                "fadd",
+                listOf(
+                    Operand.FpReg("d0"),
+                    Operand.FpReg("d1"),
+                    Operand.FpReg("d2"),
+                ),
+                0x1e622820.toInt(),
+            ),
+        )
+    }
+
     @Test fun condSelectReg() {
         // csel x0, x1, x2, eq  — Arm64Test.kt:condSelect line 206-207
         assertDec(
