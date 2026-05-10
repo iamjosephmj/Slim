@@ -93,7 +93,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "io.simdkt"
             artifactId = "nativekt"
-            version = "0.1.0"
+            version = "0.1.1"
             afterEvaluate { from(components["release"]) }
 
             pom {
