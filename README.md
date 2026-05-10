@@ -158,9 +158,6 @@ dependencies {
 }
 ```
 
-Pin a specific tag for reproducible builds, or use a commit SHA (e.g.
-`com.github.iamjosephmj:Slim:12fbe00`) for unreleased commits.
-
 > [!WARNING]
 > **Status: 0.1.0 — V1 internal release.** Public API shape is stable
 > (the `Slim` / `slim {}` surface won't change incompatibly), but the
