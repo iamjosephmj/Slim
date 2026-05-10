@@ -1,5 +1,49 @@
 <div align="center">
 
+<a href="https://github.com/iamjosephmj/Slim">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F2027,50:203A43,100:2C5364&height=260&section=header&text=SLIM&fontSize=110&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=ARM64%20NEON%20kernels%20in%20pure%20Kotlin%20%E2%80%94%20no%20JNI%20per%20call&descAlignY=60&descSize=20&descColor=B0BEC5" alt="Slim — ARM64 NEON kernels in pure Kotlin"/>
+</a>
+
+<br/>
+
+<a href="https://readme-typing-svg.demolab.com">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=3200&pause=900&color=00E5FF&center=true&vCenter=true&multiline=false&width=760&lines=Write+ARM64+NEON+code+in+Kotlin;Run+it+on+Android.+No+JNI+per+call;%C2%B7+6.95%C3%97+faster+than+JIT-optimized+Kotlin+%C2%B7;Pure-Kotlin+shellcode+via+ART+entry-point+hijack" alt="Slim taglines"/>
+</a>
+
+<br/>
+<br/>
+
+<p>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-1976D2?style=for-the-badge&logo=apache&logoColor=white" alt="License"/></a>
+  <img src="https://img.shields.io/badge/minSdk-26-43A047?style=for-the-badge&logo=android&logoColor=white" alt="minSdk 26"/>
+  <img src="https://img.shields.io/badge/ABI-arm64--v8a-FB8C00?style=for-the-badge" alt="ABI arm64-v8a"/>
+  <img src="https://img.shields.io/badge/Version-0.1.0-8E24AA?style=for-the-badge" alt="Version 0.1.0"/>
+  <img src="https://img.shields.io/badge/Kotlin-2.x-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin 2.x"/>
+  <img src="https://img.shields.io/badge/Speedup-6.95×-FF1744?style=for-the-badge&logo=fastlane&logoColor=white" alt="6.95× speedup"/>
+</p>
+
+<p>
+  <a href="https://github.com/iamjosephmj/Slim/stargazers"><img src="https://img.shields.io/github/stars/iamjosephmj/Slim?style=flat-square&color=FFD600&logo=github" alt="Stars"/></a>
+  <a href="https://github.com/iamjosephmj/Slim/network/members"><img src="https://img.shields.io/github/forks/iamjosephmj/Slim?style=flat-square&color=00BCD4&logo=github" alt="Forks"/></a>
+  <a href="https://github.com/iamjosephmj/Slim/issues"><img src="https://img.shields.io/github/issues/iamjosephmj/Slim?style=flat-square&color=F44336&logo=github" alt="Issues"/></a>
+  <a href="https://github.com/iamjosephmj/Slim/pulls"><img src="https://img.shields.io/github/issues-pr/iamjosephmj/Slim?style=flat-square&color=4CAF50&logo=github" alt="PRs"/></a>
+  <img src="https://img.shields.io/github/last-commit/iamjosephmj/Slim?style=flat-square&color=00C853&logo=git&logoColor=white" alt="Last commit"/>
+  <img src="https://img.shields.io/github/repo-size/iamjosephmj/Slim?style=flat-square&color=9C27B0" alt="Repo size"/>
+  <img src="https://img.shields.io/github/languages/top/iamjosephmj/Slim?style=flat-square&color=FF6F00" alt="Top language"/>
+  <img src="https://img.shields.io/github/commit-activity/m/iamjosephmj/Slim?style=flat-square&color=2196F3" alt="Commits/month"/>
+</p>
+
+<br/>
+
+<a href="#-installation"><img src="https://img.shields.io/badge/📦_Installation-1A237E?style=for-the-badge" alt="Installation"/></a>
+<a href="#-quick-start"><img src="https://img.shields.io/badge/🚀_Quick_start-006064?style=for-the-badge" alt="Quick start"/></a>
+<a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/🔬_Architecture-4A148C?style=for-the-badge" alt="Architecture"/></a>
+<a href="docs/COOKBOOK.md"><img src="https://img.shields.io/badge/🍳_Cookbook-BF360C?style=for-the-badge" alt="Cookbook"/></a>
+<a href="docs/CONTRIBUTING.md"><img src="https://img.shields.io/badge/🤝_Contributing-1B5E20?style=for-the-badge" alt="Contributing"/></a>
+
+<br/>
+<br/>
+
 ```
    ███████╗██╗     ██╗███╗   ███╗
    ██╔════╝██║     ██║████╗ ████║
@@ -9,23 +53,17 @@
    ╚══════╝╚══════╝╚═╝╚═╝     ╚═╝
 ```
 
-### Write ARM64 NEON code in Kotlin. Run it on Android. **No JNI per call.**
-
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
-[![minSdk](https://img.shields.io/badge/minSdk-26-brightgreen.svg?style=flat-square)](#-supported-devices)
-[![ABI](https://img.shields.io/badge/abi-arm64--v8a-orange.svg?style=flat-square)](#-supported-devices)
-[![Version](https://img.shields.io/badge/version-0.1.0-informational.svg?style=flat-square)](#-installation)
-[![Speedup](https://img.shields.io/badge/speedup-6.95×%20vs%20Kotlin-success.svg?style=flat-square)](#-performance)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.x-7f52ff.svg?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
-
-**[ Installation ](#-installation) · [ Quick start ](#-quick-start) · [ Architecture ](docs/ARCHITECTURE.md) · [ Cookbook ](docs/COOKBOOK.md) · [ Contributing ](docs/CONTRIBUTING.md)**
+**`Kotlin DSL`** ⟶ **`ARM64 shellcode`** ⟶ **`ART quick-dispatch`** ⟶ **`zero-JNI native execution`**
 
 </div>
+
+> [!IMPORTANT]
+> Slim is a **runtime SIMD compiler for Android** that lets you write ARM64 NEON instructions inline in Kotlin and have them executed by the Android Runtime (ART) **as if they were JIT-compiled Kotlin** — no JNI hop, no separate `.so`, no NDK build, no scheduler in the way. The kernel runs at NEON-native throughput; the framing is plain Kotlin function calls.
 
 ---
 
 <details>
-<summary><b>Table of contents</b></summary>
+<summary><b>📑 Table of contents</b></summary>
 
 - [A note before we start](#a-note-before-we-start)
 - [🧬 What it looks like](#-what-it-looks-like)
@@ -70,6 +108,7 @@ native code is just a writable pointer?"* — packaged as a small SDK so
 I could reuse the trick for tight SIMD kernels without paying NDK's
 startup cost on every project.
 
+> [!TIP]
 > If you're here for the SDK, skip to **[Installation](#-installation)**.
 > If you came for the boundary stuff, the
 > [Architecture doc](docs/ARCHITECTURE.md) walks every line we end up
@@ -106,35 +145,75 @@ startup, then `slim(data) { ... }` anywhere. Inside the block, raw ARM64
 NEON: registers, instructions, vector arrangements, condition codes.
 The runtime handles JIT memory, ART internals, and dispatch.
 
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  slim { ... }   →   encode NEON   →   memfd R/X   →   exec  │
+│      Kotlin DSL        ~5 µs         shared pages    native │
+└─────────────────────────────────────────────────────────────┘
+```
+
+</div>
+
 ---
 
 ## ⚡ Why
 
 If you've written SIMD on Android, you've used one of these:
 
-| Approach | Problem |
-|---|---|
-| 🔧 **JNI + NDK + `<arm_neon.h>`** | Per-call JNI overhead (~100 ns), C++ build pipeline, separate `.so` per ABI, no runtime codegen. |
-| 🪦 **RenderScript** | Deprecated since API 31. Compute kernels only, opaque scheduler. |
-| 🌋 **Vulkan compute** | Powerful but verbose. ~200 lines of boilerplate for a SAXPY. Driver overhead on small kernels. |
-| 🐢 **Pure Kotlin/Java** | JIT tries hard, but no auto-vectorization for ARM. 5-10× slower than NEON for tight loops. |
+| | Approach | Problem |
+|:-:|:--|:--|
+| 🔧 | **JNI + NDK + `<arm_neon.h>`** | Per-call JNI overhead (~100 ns), C++ build pipeline, separate `.so` per ABI, no runtime codegen. |
+| 🪦 | **RenderScript** | Deprecated since API 31. Compute kernels only, opaque scheduler. |
+| 🌋 | **Vulkan compute** | Powerful but verbose. ~200 lines of boilerplate for a SAXPY. Driver overhead on small kernels. |
+| 🐢 | **Pure Kotlin/Java** | JIT tries hard, but no auto-vectorization for ARM. 5–10× slower than NEON for tight loops. |
 
 Slim sits in a gap. You write NEON instructions in Kotlin, the runtime
 JIT-compiles them into native code, and ART dispatches the kernel via a
 hijacked entry-point — no JNI, no separate build artifact, no scheduler
-in the way. The kernel runs at NEON-native throughput; the framing is
-plain Kotlin function calls.
+in the way.
 
-> 📈 **Measured on Samsung S24 (Android 16, Cortex-X4):** SAXPY-style
-> brightness kernel over a 16 MB float buffer:
+> [!NOTE]
+> 📈 **Measured on Samsung S24 (Android 16, Cortex-X4):** SAXPY-style brightness kernel over a 16 MB float buffer.
 
-| Path | Time | Throughput | Speedup |
-|---|---|---|---|
-| Hot-path Kotlin scalar (JIT-compiled) | 5.32 ms | 3.0 GB/s | 1.0× |
-| Slim, zero-copy via `Floats` | **0.76 ms** | **23.4 GB/s** | 🔥 **6.95×** |
+<div align="center">
 
-Concurrency: 200 dispatches across 4 coroutines complete in 67 ms with
-zero races (probe-pool serves up to 8 in-flight kernels).
+<table>
+<tr>
+<td align="center" width="200">
+
+### 🐢 Kotlin scalar
+**`5.32 ms`**
+3.0 GB/s
+*1.0× baseline*
+
+</td>
+<td align="center" width="200">
+
+### ⚡ Slim
+*FloatArray (eager copy)*
+**`2.22 ms`**
+7.2 GB/s
+*2.4×*
+
+</td>
+<td align="center" width="200">
+
+### 🚀 Slim
+*Floats (zero-copy)*
+**`0.76 ms`** 🔥
+**23.4 GB/s**
+**`6.95×`**
+
+</td>
+</tr>
+</table>
+
+</div>
+
+> [!TIP]
+> Concurrency: 200 dispatches across 4 coroutines complete in 67 ms with zero races. Probe-pool serves up to 8 in-flight kernels.
 
 ---
 
@@ -161,7 +240,8 @@ dependencies {
 }
 ```
 
-> 🚧 **Status**: 0.1.0 — V1 internal release. Public API shape is stable
+> [!WARNING]
+> **Status: 0.1.0 — V1 internal release.** Public API shape is stable
 > (the `Slim` / `slim {}` surface won't change incompatibly), but the
 > underlying engine is still validating against new Android releases.
 
@@ -354,7 +434,8 @@ threads block on slot acquisition.
 ### More recipes
 
 See [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for SAXPY, dot product,
-brightness/contrast, alpha blending, RGB→grayscale, box blur, and more.
+brightness/contrast, alpha blending, RGB→grayscale, box blur, debugging
+your kernel, and more.
 
 ---
 
@@ -388,6 +469,29 @@ flowchart TB
 
     Setup ==> Encode
     Encode ==> Dispatch
+```
+
+The dispatch path itself, traced as a sequence:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant K as 🟣 Kotlin call site
+    participant ART as 🟠 ART runtime
+    participant AM as 🟡 ArtMethod
+    participant RX as 🟢 memfd R/X page
+
+    Note over K,RX: Slim.initialize() done once — bypass passed, offsets cached
+
+    K->>+ART: slim(data) { ... }  (suspend)
+    ART->>AM: peek entry_point_from_quick_compiled_code_
+    Note over AM: original pointer saved
+    ART->>AM: poke entry_point_ → R/X page
+    ART->>+RX: jump (zero JNI hop)
+    Note over RX: NEON kernel runs at native speed
+    RX-->>-ART: ret
+    ART->>AM: restore entry_point_
+    ART-->>-K: resume coroutine
 ```
 
 **1. memfd dual-map JIT memory** — A `memfd` is mapped twice: once R/W
@@ -433,20 +537,21 @@ xychart-beta
 ```
 
 | Path | Time (ms) | Throughput | Notes |
-|---|---|---|---|
+|---|---:|---:|---|
 | Kotlin scalar | 5.32 | 3.0 GB/s | Hot-path JIT'd, best of 10 |
 | Slim w/ `FloatArray` (eager copy) | 2.22 | 7.2 GB/s | Includes 2× heap↔native copy |
-| Slim w/ `Floats` (zero-copy) | **0.76** | **23.4 GB/s** | 🔥 6.95× over Kotlin |
+| Slim w/ `Floats` (zero-copy) | **0.76** | **23.4 GB/s** | 🔥 **6.95× over Kotlin** |
 
-**Cold start:** ~3 ms with warm caches (`nk_ep.bin` + `nk_policy.bin`
-from prior run), ~10 ms uncached.
+<div align="center">
 
-**Per-call dispatch overhead** (excluding kernel work): ~3 µs (probe-slot
-acquire + EP patch/unpatch + reflective invoke).
+| ⏱️ Cold start | 🎯 Per-call overhead | 🧵 Concurrent dispatch |
+|:-:|:-:|:-:|
+| **~3 ms** warm caches<br/>~10 ms uncached | **~3 µs**<br/>probe + EP patch + invoke | **~3 K calls/sec**<br/>4 coroutines × 50 calls = 67 ms |
 
-**Concurrent dispatch:** 4 coroutines × 50 calls = 200 dispatches in
-~67 ms, ~3 K calls/sec. Probe pool serves up to 8 in-flight before
-blocking.
+</div>
+
+> [!TIP]
+> Probe pool serves up to **8 in-flight** kernels before blocking. Different kernels run in parallel; same-kernel calls serialize via a per-handle `Mutex`.
 
 ---
 
@@ -470,6 +575,9 @@ The runtime requires:
 ---
 
 ## ⚠️ Caveats and limitations
+
+> [!CAUTION]
+> Slim does invasive things to the runtime. Read these before shipping.
 
 <details>
 <summary><b>Hidden-API bypass is invasive</b></summary>
@@ -531,7 +639,7 @@ Tier 5).
 | **[`README.md`](README.md)** | This file — overview + quick start. |
 | **[`nativekt/README.md`](nativekt/README.md)** | Module-specific reference, lower-level API surface. |
 | **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | How the runtime works internally: memfd dual-map, EP hijack, hidden-API bypass, encoder, label assembler, kernel cache. |
-| **[`docs/COOKBOOK.md`](docs/COOKBOOK.md)** | Recipes for common kernels: SAXPY, dot product, color filters, blur, threshold. |
+| **[`docs/COOKBOOK.md`](docs/COOKBOOK.md)** | Recipes for common kernels: SAXPY, dot product, color filters, blur, threshold, debugging. |
 | **[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)** | Adding encoder helpers, the testing pattern, ART-internals work. |
 | **[`SDK_PLAN.md`](SDK_PLAN.md)** | Original V1 build plan (historical). |
 | **[`ENCODER_V2_PLAN.md`](ENCODER_V2_PLAN.md)** | V2 encoder roadmap with what shipped (Tiers 1–4) and what's deferred (Tier 5). |
@@ -551,6 +659,26 @@ PRs welcome. The most common contributions:
 
 For larger work (encoder restructuring, V3 compile-time plugin), open an
 issue first to discuss design.
+
+<div align="center">
+
+### ⭐ Star history
+
+<a href="https://www.star-history.com/#iamjosephmj/Slim&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=iamjosephmj/Slim&type=Date&theme=dark"/>
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=iamjosephmj/Slim&type=Date"/>
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=iamjosephmj/Slim&type=Date" width="640"/>
+  </picture>
+</a>
+
+### 👥 Contributors
+
+<a href="https://github.com/iamjosephmj/Slim/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=iamjosephmj/Slim" alt="Contributors"/>
+</a>
+
+</div>
 
 ---
 
@@ -574,8 +702,8 @@ LLVM's `AArch64InstPrinter` golden bytes via `clang+llvm-objdump`.
 
 <div align="center">
 
-**Slim** · Built for tight SIMD on Android, with care.
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2C5364,50:203A43,100:0F2027&height=140&section=footer&text=Built%20for%20tight%20SIMD%20on%20Android&fontSize=22&fontColor=ffffff&fontAlignY=70&animation=fadeIn" alt="footer"/>
 
-[⬆ back to top](#)
+<a href="#"><img src="https://img.shields.io/badge/⬆%20back%20to%20top-263238?style=for-the-badge"/></a>
 
 </div>
