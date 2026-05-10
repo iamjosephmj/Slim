@@ -409,6 +409,32 @@ object Arm64Decoder {
         // --- Scalar FP (bits 28..24 = 11110) ---
         if ((op ushr 24) and 0x1F == 0b11110) return decodeScalarFp(op)
 
+        // --- UXTL/SXTL (bits 28..24 = 01111) — shift-by-immediate class ---
+        if ((op ushr 24) and 0x1F == 0b01111) return decodeUxtlSxtl(op)
+
+        // Now everything below has bits 28..24 = 01110.
+
+        // --- Dot product: bit23=1, bit22=0, bit21=0 ---
+        //   0 Q U 01110 1 0 0 Rm 10010 1 Rn Rd
+        //   Mask: bit31 | bits28..24 | bit23 | bit22 | bit21
+        val dotMask = 0x9FE00000.toInt()
+        val dotVal  = 0x0E800000.toInt()
+        if ((op and dotMask) == dotVal) return decodeSimdDotProduct(op)
+
+        // --- XTN / XTN2: bit21=1, bits20..16=00001, bits15..11=00101, bit10=0 ---
+        //   0 Q 0 01110 size 1 00001 00101 0 Rn Rd
+        //   Mask: bit31 | bit29 | bits28..24 | bit21 | bits20..16 | bits15..11 | bit10
+        val xtnMask = 0xBF3FFE00.toInt()
+        val xtnVal  = 0x0E212800.toInt()
+        if ((op and xtnMask) == xtnVal) return decodeXtn(op)
+
+        // --- DUP (general→vector): bit23=0, bit22=0, bit21=0, bits15..10=000011 ---
+        //   0 Q 0 01110 0 0 imm5 000011 Rn Rd
+        //   Mask: bit31 | bit29 | bits28..24 | bit23 | bit22 | bit21 | bits15..10
+        val dupMask = 0xBFE0FC00.toInt()
+        val dupVal  = 0x0E000C00.toInt()
+        if ((op and dupMask) == dupVal) return decodeDup(op)
+
         // --- Vector FP unary / two-reg-misc (bits 28..24 = 01110, bit21=1,
         //     bits 17..16 = 01, bits 11..10 = 10) ---
         // Mask: bit31 | bits28..24 | bit21 | bit17 | bit16 | bits11..10
@@ -416,11 +442,17 @@ object Arm64Decoder {
         val fpVecUnaryVal  = 0x0E210800.toInt()
         if ((op and fpVecUnaryMask) == fpVecUnaryVal) return decodeFpVecUnary(op)
 
-        // --- Vector FP three-same (bits 28..24 = 01110, bit21 = 1, bit10 = 1) ---
-        // Mask captures bit31=0, bits28..24, bit21, bit10.
-        val fpVec3Mask = 0x9F200400.toInt()
-        val fpVec3Val  = 0x0E200400.toInt()
-        if ((op and fpVec3Mask) == fpVec3Val) return decodeFpVec3(op)
+        // --- Three-same (bits 28..24 = 01110, bit21 = 1, bit10 = 1) ---
+        // Discriminate integer vs FP three-same by the opcode field bits[15..11]:
+        //   FP opcodes have opcode[4:3] = 0b11 (i.e. opcode >= 24)
+        //   Integer opcodes (add/sub/mul/mla/mls/sshl/ushl/sqadd/sqsub/logical) are < 24
+        val threeSameMask = 0x9F200400.toInt()
+        val threeSameVal  = 0x0E200400.toInt()
+        if ((op and threeSameMask) == threeSameVal) {
+            val opc15_11 = (op ushr 11) and 0x1F
+            return if ((opc15_11 ushr 3) and 0b11 == 0b11) decodeFpVec3(op)
+                   else decodeIntVec3(op)
+        }
 
         return DecodedInsn("?", listOf(Operand.Unknown(op)), op)
     }
@@ -476,7 +508,7 @@ object Arm64Decoder {
         val op4   = (op ushr 12) and 0xF   // bits 15..12
         val rn    = (op ushr  5) and 0x1F
         val rd    = op and 0x1F
-        val ftype = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        val ftype = fpTypeName(type)
         val mnem = when (op4) {
             0b0000 -> "fmul"
             0b0001 -> "fdiv"
@@ -506,7 +538,7 @@ object Arm64Decoder {
         val rn    = (op ushr  5) and 0x1F
         val rd    = op and 0x1F
         val gpPrefix = if (sf == 1) "x" else "w"
-        val fpType   = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        val fpType   = fpTypeName(type)
         return when {
             // fcvtzs: rmode=11, opcode=000 → GP(rd) = int(FP(rn))
             rmode == 0b11 && opc == 0b000 -> DecodedInsn(
@@ -530,7 +562,7 @@ object Arm64Decoder {
         val rm    = (op ushr 16) and 0x1F
         val rn    = (op ushr  5) and 0x1F
         val opc2  = op and 0x1F   // bit3=1 → compare with #0.0
-        val fpType = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        val fpType = fpTypeName(type)
         return if ((opc2 and 0b01000) != 0) {
             DecodedInsn("fcmp", listOf(Operand.FpReg("$fpType$rn")), op)
         } else {
@@ -545,7 +577,7 @@ object Arm64Decoder {
         val cond = (op ushr 12) and 0xF
         val rn   = (op ushr  5) and 0x1F
         val rd   = op and 0x1F
-        val fpType = when (type) { 0 -> "s"; 1 -> "d"; else -> "h" }
+        val fpType = fpTypeName(type)
         return DecodedInsn(
             "fcsel",
             listOf(
@@ -671,6 +703,176 @@ object Arm64Decoder {
                 Operand.VecReg("v$rd", arr),
                 Operand.VecReg("v$rn", arr),
             ),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // Integer three-same: 0 Q U 01110 size 1 Rm opcode 1 Rn Rd
+    //   Covers: add/sub/mul/mla/mls/sshl/ushl/sqadd/sqsub + SIMD logical
+    //   Dispatched here when opcode[4:3] != 0b11 (non-FP opcodes).
+    // -----------------------------------------------------------------
+
+    private fun decodeIntVec3(op: Int): DecodedInsn {
+        val q      = (op ushr 30) and 1
+        val u      = (op ushr 29) and 1
+        val size   = (op ushr 22) and 0x3   // bits 23..22
+        val opcode = (op ushr 11) and 0x1F  // bits 15..11
+        val rm     = (op ushr 16) and 0x1F
+        val rn     = (op ushr  5) and 0x1F
+        val rd     = op and 0x1F
+        val arr    = vArrFor(q, size)
+
+        // SIMD logical: opcode=00011, size encodes op variant
+        //   AND: U=0, size=00; ORR: U=0, size=10; EOR: U=1, size=00; BIC: U=0, size=01
+        if (opcode == 0b00011) {
+            val logArr = Arm64.VArr.B16  // always .16b / .8b (q selects which)
+            val logArrFull = if (q == 1) Arm64.VArr.B16 else Arm64.VArr.B8
+            val mnem = when {
+                u == 0 && size == 0b00 -> "and"
+                u == 0 && size == 0b10 -> "orr"
+                u == 1 && size == 0b00 -> "eor"
+                u == 0 && size == 0b01 -> "bic"
+                else -> "?"
+            }
+            return DecodedInsn(
+                mnem,
+                listOf(
+                    Operand.VecReg("v$rd", logArrFull),
+                    Operand.VecReg("v$rn", logArrFull),
+                    Operand.VecReg("v$rm", logArrFull),
+                ),
+                op,
+            )
+        }
+
+        val mnem = when (Triple(opcode, u, 0)) {
+            Triple(0b10000, 0, 0) -> "add"
+            Triple(0b10000, 1, 0) -> "sub"
+            Triple(0b10011, 0, 0) -> "mul"
+            Triple(0b10010, 0, 0) -> "mla"
+            Triple(0b10010, 1, 0) -> "mls"
+            Triple(0b01000, 0, 0) -> "sshl"
+            Triple(0b01000, 1, 0) -> "ushl"
+            Triple(0b00001, 0, 0) -> "sqadd"
+            Triple(0b00001, 1, 0) -> "uqadd"
+            Triple(0b00101, 0, 0) -> "sqsub"
+            Triple(0b00101, 1, 0) -> "uqsub"
+            Triple(0b10110, 0, 0) -> "sqdmulh"
+            else -> return DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+        return DecodedInsn(
+            mnem,
+            listOf(
+                Operand.VecReg("v$rd", arr),
+                Operand.VecReg("v$rn", arr),
+                Operand.VecReg("v$rm", arr),
+            ),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // Dot product: 0 Q U 01110 1 0 0 Rm 10010 1 Rn Rd
+    //   SDOT: U=0; UDOT: U=1
+    //   arr (S2 or S4) selects q; source lanes are B8/B16
+    // -----------------------------------------------------------------
+
+    private fun decodeSimdDotProduct(op: Int): DecodedInsn {
+        val q  = (op ushr 30) and 1
+        val u  = (op ushr 29) and 1
+        val rm = (op ushr 16) and 0x1F
+        val rn = (op ushr  5) and 0x1F
+        val rd = op and 0x1F
+        val mnem   = if (u == 0) "sdot" else "udot"
+        val dstArr = if (q == 1) Arm64.VArr.S4 else Arm64.VArr.S2    // dest: .2s/.4s
+        val srcArr = if (q == 1) Arm64.VArr.B16 else Arm64.VArr.B8   // src: .8b/.16b
+        return DecodedInsn(
+            mnem,
+            listOf(
+                Operand.VecReg("v$rd", dstArr),
+                Operand.VecReg("v$rn", srcArr),
+                Operand.VecReg("v$rm", srcArr),
+            ),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // DUP (general-register → vector): 0 Q 0 01110 0 0 imm5 000011 Rn Rd
+    //   imm5 lowest set bit encodes element size: bit0=B, bit1=H, bit2=S, bit3=D
+    // -----------------------------------------------------------------
+
+    private fun decodeDup(op: Int): DecodedInsn {
+        val q    = (op ushr 30) and 1
+        val imm5 = (op ushr 16) and 0x1F
+        val rn   = (op ushr  5) and 0x1F
+        val rd   = op and 0x1F
+        // size = number of trailing zeros in imm5
+        val size = Integer.numberOfTrailingZeros(imm5)
+        val arr  = vArrFor(q, size)
+        // source is always a W register (the general-purpose scalar)
+        val rnName = "w$rn"
+        return DecodedInsn(
+            "dup",
+            listOf(Operand.VecReg("v$rd", arr), Operand.Reg(rnName)),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // XTN / XTN2: 0 Q 0 01110 size 100001 00101 0 Rn Rd
+    //   destArr is the narrow result; source is implicitly dest doubled.
+    //   XTN (q=0) writes lower half; XTN2 (q=1) writes upper half.
+    //   size field encodes the destination element size:
+    //     0 -> .8b/.16b;  1 -> .4h/.8h;  2 -> .2s/.4s
+    // -----------------------------------------------------------------
+
+    private fun decodeXtn(op: Int): DecodedInsn {
+        val q    = (op ushr 30) and 1
+        val size = (op ushr 22) and 0x3
+        val rn   = (op ushr  5) and 0x1F
+        val rd   = op and 0x1F
+        // destination arrangement (narrow result)
+        val destArr = vArrFor(q, size)
+        // source arrangement: same lane count, element size doubled → size+1
+        val srcArr  = vArrFor(0, size + 1)   // q=0 for 2-lanes (always 64-bit wide src side)
+        val mnem = if (q == 0) "xtn" else "xtn2"
+        return DecodedInsn(
+            mnem,
+            listOf(Operand.VecReg("v$rd", destArr), Operand.VecReg("v$rn", srcArr)),
+            op,
+        )
+    }
+
+    // -----------------------------------------------------------------
+    // UXTL / SXTL: 0 Q U 01111 immh imml 101001 Rn Rd
+    //   U=1 → UXTL; U=0 → SXTL
+    //   immh encodes the source arrangement size:
+    //     0001 → srcSize=0 (.8b/.16b); 0010 → srcSize=1 (.4h/.8h);
+    //     0100 → srcSize=2 (.2s/.4s)
+    //   destination arrangement is one size wider than source, q determines lane count.
+    // -----------------------------------------------------------------
+
+    private fun decodeUxtlSxtl(op: Int): DecodedInsn {
+        val q    = (op ushr 30) and 1
+        val u    = (op ushr 29) and 1
+        val immh = (op ushr 19) and 0xF   // bits 22..19
+        val rn   = (op ushr  5) and 0x1F
+        val rd   = op and 0x1F
+        // immh highest set bit determines source element size
+        val srcSize = when {
+            immh and 0b1000 != 0 -> 3   // D — shouldn't occur for uxtl
+            immh and 0b0100 != 0 -> 2   // S
+            immh and 0b0010 != 0 -> 1   // H
+            else                 -> 0   // B
+        }
+        val mnem   = if (u == 1) "uxtl" else "sxtl"
+        val srcArr = vArrFor(q, srcSize)          // source narrow arrangement
+        val dstArr = vArrFor(1, srcSize + 1)      // dest is one size wider; q=1 (full 128b)
+        return DecodedInsn(
+            mnem,
+            listOf(Operand.VecReg("v$rd", dstArr), Operand.VecReg("v$rn", srcArr)),
             op,
         )
     }
@@ -1109,6 +1311,13 @@ object Arm64Decoder {
     private fun signExtend(value: Int, bits: Int): Int {
         val shift = 32 - bits
         return (value shl shift) shr shift
+    }
+
+    /** Map ARM-ARM `type` field (00=S, 01=D, 1x=H) to FP register prefix. */
+    private fun fpTypeName(type: Int): String = when (type) {
+        0 -> "s"
+        1 -> "d"
+        else -> "h"
     }
 
     private fun condName(cond: Int): String = when (cond) {

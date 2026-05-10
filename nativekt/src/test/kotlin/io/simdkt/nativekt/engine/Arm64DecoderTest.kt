@@ -929,6 +929,352 @@ class Arm64DecoderTest {
         )
     }
 
+    // ------------------------------------------------------------------
+    // NEON int + misc: paired assertDec for every assertEnc in
+    // Arm64Test.kt:{intVector, neonMisc, neonLogical}
+    // ------------------------------------------------------------------
+
+    @Test fun intVector() {
+        // add v0.16b, v1.16b, v2.16b — Arm64Test.kt:intVector line 132
+        assertDec(
+            0x4e228420.toInt(),
+            DecodedInsn(
+                "add",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4e228420.toInt(),
+            ),
+        )
+        // add v0.4s, v1.4s, v2.4s — Arm64Test.kt:intVector line 133
+        assertDec(
+            0x4ea28420.toInt(),
+            DecodedInsn(
+                "add",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea28420.toInt(),
+            ),
+        )
+        // sub v0.4s, v1.4s, v2.4s — Arm64Test.kt:intVector line 134
+        assertDec(
+            0x6ea28420.toInt(),
+            DecodedInsn(
+                "sub",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x6ea28420.toInt(),
+            ),
+        )
+        // mul v0.4s, v1.4s, v2.4s — Arm64Test.kt:intVector line 135
+        assertDec(
+            0x4ea29c20.toInt(),
+            DecodedInsn(
+                "mul",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea29c20.toInt(),
+            ),
+        )
+        // mla v0.4s, v1.4s, v2.4s — Arm64Test.kt:intVector line 136
+        assertDec(
+            0x4ea29420.toInt(),
+            DecodedInsn(
+                "mla",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea29420.toInt(),
+            ),
+        )
+        // mls v0.4s, v1.4s, v2.4s — Arm64Test.kt:intVector line 137
+        assertDec(
+            0x6ea29420.toInt(),
+            DecodedInsn(
+                "mls",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x6ea29420.toInt(),
+            ),
+        )
+        // sshl v0.4s, v1.4s, v2.4s — computed from Arm64.sshl(V0,V1,V2,S4)
+        assertDec(
+            0x4ea24420.toInt(),
+            DecodedInsn(
+                "sshl",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea24420.toInt(),
+            ),
+        )
+        // ushl v0.4s, v1.4s, v2.4s — computed from Arm64.ushl(V0,V1,V2,S4)
+        assertDec(
+            0x6ea24420.toInt(),
+            DecodedInsn(
+                "ushl",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x6ea24420.toInt(),
+            ),
+        )
+        // sqadd v0.16b, v1.16b, v2.16b — Arm64Test.kt:saturatingArith line 294
+        assertDec(
+            0x4e220c20.toInt(),
+            DecodedInsn(
+                "sqadd",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4e220c20.toInt(),
+            ),
+        )
+        // sqadd v0.4s, v1.4s, v2.4s — Arm64Test.kt:saturatingArith line 296
+        assertDec(
+            0x4ea20c20.toInt(),
+            DecodedInsn(
+                "sqadd",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea20c20.toInt(),
+            ),
+        )
+        // sqsub v0.16b, v1.16b, v2.16b — Arm64Test.kt:saturatingArith line 302
+        assertDec(
+            0x4e222c20.toInt(),
+            DecodedInsn(
+                "sqsub",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4e222c20.toInt(),
+            ),
+        )
+        // sqsub v0.4s, v1.4s, v2.4s — Arm64Test.kt:saturatingArith line 304
+        assertDec(
+            0x4ea22c20.toInt(),
+            DecodedInsn(
+                "sqsub",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
+                    Operand.VecReg("v2", Arm64.VArr.S4),
+                ),
+                0x4ea22c20.toInt(),
+            ),
+        )
+        // sdot v0.4s, v1.16b, v2.16b — Arm64Test.kt:dotProduct line 333
+        assertDec(
+            0x4e829420.toInt(),
+            DecodedInsn(
+                "sdot",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4e829420.toInt(),
+            ),
+        )
+        // udot v0.4s, v1.16b, v2.16b — Arm64Test.kt:dotProduct line 335
+        assertDec(
+            0x6e829420.toInt(),
+            DecodedInsn(
+                "udot",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x6e829420.toInt(),
+            ),
+        )
+        // sdot v0.2s, v1.8b, v2.8b — Arm64Test.kt:dotProduct line 337
+        assertDec(
+            0x0e829420.toInt(),
+            DecodedInsn(
+                "sdot",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S2),
+                    Operand.VecReg("v1", Arm64.VArr.B8),
+                    Operand.VecReg("v2", Arm64.VArr.B8),
+                ),
+                0x0e829420.toInt(),
+            ),
+        )
+        // udot v0.2s, v1.8b, v2.8b — Arm64Test.kt:dotProduct line 339
+        assertDec(
+            0x2e829420.toInt(),
+            DecodedInsn(
+                "udot",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S2),
+                    Operand.VecReg("v1", Arm64.VArr.B8),
+                    Operand.VecReg("v2", Arm64.VArr.B8),
+                ),
+                0x2e829420.toInt(),
+            ),
+        )
+    }
+
+    @Test fun neonMisc() {
+        // dup v0.4s, w1 — Arm64Test.kt:neonMisc line 141
+        assertDec(
+            0x4e040c20.toInt(),
+            DecodedInsn(
+                "dup",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.Reg("w1"),
+                ),
+                0x4e040c20.toInt(),
+            ),
+        )
+        // dup v0.16b, w1 — Arm64Test.kt:neonMisc line 142
+        assertDec(
+            0x4e010c20.toInt(),
+            DecodedInsn(
+                "dup",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.Reg("w1"),
+                ),
+                0x4e010c20.toInt(),
+            ),
+        )
+        // xtn v0.4h, v1.4s — Arm64Test.kt:neonMisc line 143
+        assertDec(
+            0x0e612820.toInt(),
+            DecodedInsn(
+                "xtn",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.H4),
+                    Operand.VecReg("v1", Arm64.VArr.S2),
+                ),
+                0x0e612820.toInt(),
+            ),
+        )
+        // xtn2 v0.8h, v1.4s — Arm64Test.kt:neonMisc line 144
+        assertDec(
+            0x4e612820.toInt(),
+            DecodedInsn(
+                "xtn2",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.H8),
+                    Operand.VecReg("v1", Arm64.VArr.S2),
+                ),
+                0x4e612820.toInt(),
+            ),
+        )
+        // uxtl v0.4s, v1.4h — Arm64Test.kt:neonMisc line 145
+        assertDec(
+            0x2f10a420.toInt(),
+            DecodedInsn(
+                "uxtl",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.H4),
+                ),
+                0x2f10a420.toInt(),
+            ),
+        )
+        // sxtl v0.4s, v1.4h — Arm64Test.kt:neonMisc line 146
+        assertDec(
+            0x0f10a420.toInt(),
+            DecodedInsn(
+                "sxtl",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.VecReg("v1", Arm64.VArr.H4),
+                ),
+                0x0f10a420.toInt(),
+            ),
+        )
+    }
+
+    @Test fun neonLogical() {
+        // and v0.16b, v1.16b, v2.16b — Arm64Test.kt:neonLogical line 156
+        assertDec(
+            0x4e221c20.toInt(),
+            DecodedInsn(
+                "and",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4e221c20.toInt(),
+            ),
+        )
+        // orr v0.16b, v1.16b, v2.16b — Arm64Test.kt:neonLogical line 157
+        assertDec(
+            0x4ea21c20.toInt(),
+            DecodedInsn(
+                "orr",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4ea21c20.toInt(),
+            ),
+        )
+        // eor v0.16b, v1.16b, v2.16b — Arm64Test.kt:neonLogical line 158
+        assertDec(
+            0x6e221c20.toInt(),
+            DecodedInsn(
+                "eor",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x6e221c20.toInt(),
+            ),
+        )
+        // bic v0.16b, v1.16b, v2.16b — Arm64Test.kt:neonLogical line 159
+        assertDec(
+            0x4e621c20.toInt(),
+            DecodedInsn(
+                "bic",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.VecReg("v1", Arm64.VArr.B16),
+                    Operand.VecReg("v2", Arm64.VArr.B16),
+                ),
+                0x4e621c20.toInt(),
+            ),
+        )
+    }
+
     @Test fun condSelectReg() {
         // csel x0, x1, x2, eq  — Arm64Test.kt:condSelect line 206-207
         assertDec(
