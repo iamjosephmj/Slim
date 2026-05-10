@@ -653,6 +653,19 @@ class Arm64DecoderTest {
                 0xad000440.toInt(),
             ),
         )
+        // ldp d0, d1, [x2]  — V=1, opc=01 (D-pair), hand-constructed: 0x6d400440
+        assertDec(
+            0x6d400440,
+            DecodedInsn(
+                "ldp",
+                listOf(
+                    Operand.VecReg("d0", null),
+                    Operand.VecReg("d1", null),
+                    Operand.MemAddr(Operand.Reg("x2"), null, AddrMode.OFFSET),
+                ),
+                0x6d400440,
+            ),
+        )
     }
 
     @Test fun preIndexLoads() {

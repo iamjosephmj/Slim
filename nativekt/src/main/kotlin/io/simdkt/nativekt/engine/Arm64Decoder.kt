@@ -779,62 +779,45 @@ object Arm64Decoder {
 
         val rnName = if (rn == 31) "sp" else "x$rn"
 
-        // Determine scale and register names
-        // opc=10, V=0 → 64-bit X regs, scale=3
-        // opc=00, V=0 → 32-bit W regs, scale=2
-        // opc=10, V=1 → 128-bit Q regs, scale=4
-        return when {
-            v == 1 -> {
-                // SIMD/FP pair — Q registers
-                val scale = when (opc) {
-                    0b10 -> 4  // Q (128-bit)
-                    0b01 -> 3  // D (64-bit)
-                    else -> 2  // S (32-bit)
-                }
-                val byteOffset = imm7 shl scale
-                val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
-                               else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
-                DecodedInsn(
-                    mnem,
-                    listOf(
-                        Operand.VecReg("q$rt",  null),
-                        Operand.VecReg("q$rt2", null),
-                        Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
-                    ),
-                    op,
-                )
-            }
-            opc == 0b10 -> {
-                // 64-bit X register pair, scale=3
-                val byteOffset = imm7 shl 3
-                val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
-                               else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
-                DecodedInsn(
-                    mnem,
-                    listOf(
-                        Operand.Reg("x$rt"),
-                        Operand.Reg("x$rt2"),
-                        Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
-                    ),
-                    op,
-                )
-            }
-            else -> {
-                // 32-bit W register pair, scale=2
-                val byteOffset = imm7 shl 2
-                val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
-                               else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
-                DecodedInsn(
-                    mnem,
-                    listOf(
-                        Operand.Reg("w$rt"),
-                        Operand.Reg("w$rt2"),
-                        Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
-                    ),
-                    op,
-                )
-            }
+        // Determine scale, register names, and operand kind from opc + V.
+        //   V=0, opc=00 → W pair, scale=2
+        //   V=0, opc=10 → X pair, scale=3
+        //   V=1, opc=00 → S pair (32-bit SIMD), scale=2
+        //   V=1, opc=01 → D pair (64-bit SIMD), scale=3
+        //   V=1, opc=10 → Q pair (128-bit SIMD), scale=4
+        val scale = when {
+            v == 1 && opc == 0b10 -> 4
+            v == 1 && opc == 0b01 -> 3
+            v == 1              -> 2   // opc=00 → S
+            opc == 0b10         -> 3   // V=0, X regs
+            else                -> 2   // V=0, W regs
         }
+
+        val byteOffset = imm7 shl scale
+        val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
+                       else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
+
+        val rtOperands: List<Operand> = when {
+            v == 1 -> {
+                val simdPrefix = when (opc) {
+                    0b10 -> "q"
+                    0b01 -> "d"
+                    else -> "s"   // opc=00
+                }
+                listOf(
+                    Operand.VecReg("$simdPrefix$rt",  null),
+                    Operand.VecReg("$simdPrefix$rt2", null),
+                )
+            }
+            opc == 0b10 -> listOf(Operand.Reg("x$rt"), Operand.Reg("x$rt2"))
+            else        -> listOf(Operand.Reg("w$rt"), Operand.Reg("w$rt2"))
+        }
+
+        return DecodedInsn(
+            mnem,
+            rtOperands + Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
+            op,
+        )
     }
 
     private fun signExtend(value: Int, bits: Int): Int {
