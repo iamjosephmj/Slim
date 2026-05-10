@@ -154,14 +154,12 @@ android {
 }
 
 dependencies {
-    implementation("com.github.iamjosephmj.Slim:nativekt:0.1.0")
+    implementation("com.github.iamjosephmj:Slim:0.1.0")
 }
 ```
 
-The `groupId.repo:module:tag` triple resolves to JitPack's build of the
-`:nativekt` module at the matching git tag. Pin a specific tag for
-reproducible builds, or use a SHA (`com.github.iamjosephmj.Slim:nativekt:8b2015b`)
-for unreleased commits.
+Pin a specific tag for reproducible builds, or use a commit SHA (e.g.
+`com.github.iamjosephmj:Slim:12fbe00`) for unreleased commits.
 
 > [!WARNING]
 > **Status: 0.1.0 — V1 internal release.** Public API shape is stable
