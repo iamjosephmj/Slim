@@ -84,11 +84,11 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.iamjosephmj:Slim:0.1.0")
+    implementation("com.github.iamjosephmj:Slim:0.1.2")
 }
 ```
 
-!!! warning "0.1.0 — V1 internal release"
+!!! warning "0.1.2 — V1 internal release"
     Public API surface (`Slim` / `slim {}`) is stable and won't change
     incompatibly. The underlying engine is still validating against new
     Android releases. See **[Production readiness](https://github.com/iamjosephmj/Slim#%EF%B8%8F-production-readiness)**

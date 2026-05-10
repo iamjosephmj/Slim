@@ -154,12 +154,12 @@ android {
 }
 
 dependencies {
-    implementation("com.github.iamjosephmj:Slim:0.1.0")
+    implementation("com.github.iamjosephmj:Slim:0.1.2")
 }
 ```
 
 > [!WARNING]
-> **Status: 0.1.0 — V1 internal release.** Public API shape is stable
+> **Status: 0.1.2 — V1 internal release.** Public API shape is stable
 > (the `Slim` / `slim {}` surface won't change incompatibly), but the
 > underlying engine is still validating against new Android releases.
 
@@ -492,7 +492,7 @@ quiet fallback to scalar code — not a crash.
 
 ### What "production" means here
 
-Slim 0.1.0 is shipping inside internal apps. The dispatch mechanism has
+Slim 0.1.2 is shipping inside internal apps. The dispatch mechanism has
 been validated across the supported API range. The encoder ships with
 **150+ paired golden-byte tests**, **14 property-based round-trip
 tests**, and **1000-opcode negative tests** (random bytes never throw).
