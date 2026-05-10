@@ -480,14 +480,10 @@ all four fail, `initialize()` returns `false` cleanly.
 |---|:-:|
 | Google Play Integrity API | ✅ No interaction (no native lib, no DEX modification) |
 | Stock ROMs (no anti-tamper) | ✅ Confirmed compatible |
-| DexProtector | ⚠️ Likely flag — test before shipping |
-| Promon SHIELD | ⚠️ Likely flag — test before shipping |
-| AppDome | ⚠️ Likely flag — test before shipping |
-| Custom anti-tamper / RASP | ⚠️ Slim performs reflection these are designed to detect — evaluate per vendor |
 
-The reflection Slim performs is exactly the kind hardening SDKs are
-designed to flag. If you embed one, run a smoke test on your build
-pipeline before shipping. The kill-switch above means worst case is a
+If you ship with a hardening / RASP SDK, run a smoke test on your build
+pipeline before shipping — the reflection Slim performs is the kind such
+SDKs are designed to flag. The kill-switch above means worst case is a
 quiet fallback to scalar code — not a crash.
 
 ### What "production" means here
@@ -539,11 +535,22 @@ The numbers above compare Slim against scalar Kotlin. The question that comes up
 - **Same memory pattern, same thread, same input.** Both backends operate on the same direct `ByteBuffer`, on the bench thread, with no fan-out or thread pool. A correctness gate enforces byte-identical output before any timing happens.
 - **Only variable: dispatch mechanism.** JNI uses a registered native trampoline. Slim uses the ART entry-point hijack described in [How it works](#-how-it-works).
 
-Ran on 7 real devices via a cloud test farm (full screenshots in [`bench/bench-results/`](bench/bench-results/)):
+Ran on 7 real devices via a cloud test farm — tap any thumbnail for the full-resolution screenshot:
 
-<p align="center">
-  <img src="bench/bench-results/pixel-10-pro-xl-android17.png" alt="Pixel 10 Pro XL · Android 17 · Slim within 6% of JNI at 4K" width="360"/>
-</p>
+<table>
+<tr>
+<td align="center" width="25%"><a href="bench/bench-results/pixel-10-pro-xl-android17.png"><img src="bench/bench-results/pixel-10-pro-xl-android17.png" alt="Pixel 10 Pro XL — Android 17" width="180"/></a><br/><sub>Pixel 10 Pro XL<br/>Android 17</sub></td>
+<td align="center" width="25%"><a href="bench/bench-results/galaxy-a54-5g-android16.png"><img src="bench/bench-results/galaxy-a54-5g-android16.png" alt="Galaxy A54 5G — Android 16" width="180"/></a><br/><sub>Galaxy A54 5G<br/>Android 16</sub></td>
+<td align="center" width="25%"><a href="bench/bench-results/oppo-reno13-f-android15.png"><img src="bench/bench-results/oppo-reno13-f-android15.png" alt="Oppo Reno13 F — Android 15" width="180"/></a><br/><sub>Oppo Reno13 F<br/>Android 15</sub></td>
+<td align="center" width="25%"><a href="bench/bench-results/galaxy-a23-5g-android14.png"><img src="bench/bench-results/galaxy-a23-5g-android14.png" alt="Galaxy A23 5G — Android 14" width="180"/></a><br/><sub>Galaxy A23 5G<br/>Android 14</sub></td>
+</tr>
+<tr>
+<td align="center"><a href="bench/bench-results/galaxy-note20-android13.png"><img src="bench/bench-results/galaxy-note20-android13.png" alt="Galaxy Note20 — Android 13" width="180"/></a><br/><sub>Galaxy Note20<br/>Android 13</sub></td>
+<td align="center"><a href="bench/bench-results/galaxy-s20-fe-2022-android12.png"><img src="bench/bench-results/galaxy-s20-fe-2022-android12.png" alt="Galaxy S20 FE 2022 — Android 12" width="180"/></a><br/><sub>Galaxy S20 FE 2022<br/>Android 12</sub></td>
+<td align="center"><a href="bench/bench-results/oppo-a94-5g-android11.png"><img src="bench/bench-results/oppo-a94-5g-android11.png" alt="Oppo A94 5G — Android 11" width="180"/></a><br/><sub>Oppo A94 5G<br/>Android 11</sub></td>
+<td></td>
+</tr>
+</table>
 
 | Device | Android | Dispatch baseline<br/>(JNI / Slim) | 1080p<br/>(2 MB) | 4K<br/>(8 MB) |
 |---|:-:|:-:|:-:|:-:|
