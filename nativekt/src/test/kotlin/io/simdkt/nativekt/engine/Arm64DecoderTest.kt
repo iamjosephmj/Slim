@@ -1171,25 +1171,27 @@ class Arm64DecoderTest {
             ),
         )
         // xtn v0.4h, v1.4s — Arm64Test.kt:neonMisc line 143
+        // Source is always 128-bit (Q=1) per ARM ARM C7.2.382
         assertDec(
             0x0e612820.toInt(),
             DecodedInsn(
                 "xtn",
                 listOf(
                     Operand.VecReg("v0", Arm64.VArr.H4),
-                    Operand.VecReg("v1", Arm64.VArr.S2),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
                 ),
                 0x0e612820.toInt(),
             ),
         )
         // xtn2 v0.8h, v1.4s — Arm64Test.kt:neonMisc line 144
+        // Source is always 128-bit (Q=1) per ARM ARM C7.2.382
         assertDec(
             0x4e612820.toInt(),
             DecodedInsn(
                 "xtn2",
                 listOf(
                     Operand.VecReg("v0", Arm64.VArr.H8),
-                    Operand.VecReg("v1", Arm64.VArr.S2),
+                    Operand.VecReg("v1", Arm64.VArr.S4),
                 ),
                 0x4e612820.toInt(),
             ),
@@ -1272,6 +1274,55 @@ class Arm64DecoderTest {
                 ),
                 0x4e621c20.toInt(),
             ),
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // System / hint / barrier: paired assertDec for every assertEnc in
+    // Arm64Test.kt:systemAndPac (lines 82-90).
+    // Note: ret/br/blr are already covered in branches() above.
+    // ------------------------------------------------------------------
+
+    @Test fun systemAndPac() {
+        // nop — Arm64Test.kt:systemAndPac line 83
+        assertDec(
+            0xd503201f.toInt(),
+            DecodedInsn("nop", emptyList(), 0xd503201f.toInt()),
+        )
+        // isb — Arm64Test.kt:systemAndPac line 84
+        assertDec(
+            0xd5033fdf.toInt(),
+            DecodedInsn("isb", emptyList(), 0xd5033fdf.toInt()),
+        )
+        // paciasp — Arm64Test.kt:systemAndPac line 85
+        assertDec(
+            0xd503233f.toInt(),
+            DecodedInsn("paciasp", emptyList(), 0xd503233f.toInt()),
+        )
+        // autiasp — Arm64Test.kt:systemAndPac line 86
+        assertDec(
+            0xd50323bf.toInt(),
+            DecodedInsn("autiasp", emptyList(), 0xd50323bf.toInt()),
+        )
+        // btiC — Arm64Test.kt:systemAndPac line 87
+        assertDec(
+            0xd503245f.toInt(),
+            DecodedInsn("btiC", emptyList(), 0xd503245f.toInt()),
+        )
+        // btiJ — Arm64Test.kt:systemAndPac line 88
+        assertDec(
+            0xd503249f.toInt(),
+            DecodedInsn("btiJ", emptyList(), 0xd503249f.toInt()),
+        )
+        // btiJC — Arm64Test.kt:systemAndPac line 89
+        assertDec(
+            0xd50324df.toInt(),
+            DecodedInsn("btiJC", emptyList(), 0xd50324df.toInt()),
+        )
+        // dmb sy — Arm64Test.kt:systemAndPac line 90 (Arm64.dmb(0xF) = 0xD5033FBF)
+        assertDec(
+            0xd5033fbf.toInt(),
+            DecodedInsn("dmb", listOf(Operand.Reg("sy")), 0xd5033fbf.toInt()),
         )
     }
 

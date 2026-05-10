@@ -6,6 +6,7 @@ object Arm64Decoder {
         isConditionalBranch(op)   -> decodeConditionalBranch(op)
         isCompareBranch(op)       -> decodeCompareBranch(op)
         isTestBranch(op)          -> decodeTestBranch(op)
+        isSystem(op)              -> decodeSystem(op)
         isRegisterBranch(op)      -> decodeRegisterBranch(op)
         isDataProcImm(op)         -> decodeDataProcImm(op)
         isDataProcReg(op)         -> decodeDataProcReg(op)
@@ -83,6 +84,69 @@ object Arm64Decoder {
             ),
             op,
         )
+    }
+
+    // -----------------------------------------------------------------
+    // System / hint / barrier instructions
+    // All share bits 31..24 = 0b11010101 (0xD5) AND bit23=0 (non-MRS/MSR).
+    // Specifically: hint (NOP/PAC/BTI) and barriers (ISB/DMB) have
+    //   bits 31..24 = 0xD5, bit23=0, bit22=0, bit21=0, bit20=0, bit19=0,
+    //   bits 18..16 = 011 (CRn=0011), bit12=1 (CRm subtype)
+    // Rather than full field decode, use exact-match for fixed encodings
+    // and a small mask for parameterised ones (DMB/ISB).
+    // -----------------------------------------------------------------
+
+    // Hint/barrier group: bits 31..12 cover all the fixed encodings we handle.
+    // The shared prefix for the hint/barrier group is bits 31..22 = 0b1101010100_11
+    // i.e. 0xD503_xxxx with bits 31..22 = 0b11_0101_0100 (0x354 >> ... let's just
+    // match on the MSB byte and one more nybble for clarity).
+    //
+    // Exact encodings we need:
+    //   NOP      = 0xD503201F   hints CRm=0010, op2=111
+    //   ISB      = 0xD5033FDF   barriers CRm=1111, op2=110
+    //   DMB      = 0xD503xxBF   barriers op2=101, option in bits[11:8]
+    //   PACIASP  = 0xD503233F   hints CRm=0011, op2=111  (actually key = 0xFF)
+    //   AUTIASP  = 0xD50323BF   hints CRm=0011, op2=101
+    //   BTI C    = 0xD503245F   hints CRm=0010, op2=010 (BTI targets)
+    //   BTI J    = 0xD503249F
+    //   BTI JC   = 0xD50324DF
+    //
+    // All share bits[31:24]=0xD5 and bit[23]=0 and bit[22]=0 and bits[21:20]=00 and bits[19:16]=0011.
+    // That is: top 20 bits (31..12) always = 0xD5030xx.  Use bits[31:20] = 0xD503 as discriminant.
+    // All hint/barrier instructions share bits[31:16] = 0xD503
+    // (bits[31:24]=0xD5 = MSR/hint/barrier encoding; bits[23:16]=0x03 = op1=0, CRn=3).
+    private fun isSystem(op: Int): Boolean =
+        (op ushr 16) and 0xFFFF == 0xD503
+
+    private fun decodeSystem(op: Int): DecodedInsn {
+        // Full exact matches first.
+        return when (op) {
+            0xD503201F.toInt() -> DecodedInsn("nop",     emptyList(), op)
+            0xD503233F.toInt() -> DecodedInsn("paciasp", emptyList(), op)
+            0xD50323BF.toInt() -> DecodedInsn("autiasp", emptyList(), op)
+            0xD503245F.toInt() -> DecodedInsn("btiC",    emptyList(), op)
+            0xD503249F.toInt() -> DecodedInsn("btiJ",    emptyList(), op)
+            0xD50324DF.toInt() -> DecodedInsn("btiJC",   emptyList(), op)
+            0xD5033FDF.toInt() -> DecodedInsn("isb",     emptyList(), op)
+            else -> {
+                // DMB: bits[31:12] = 0xD5033, bits[7:0] = 0xBF, option in bits[11:8].
+                // Zero out the option field and compare against the DMB base template.
+                val dmbBase = op and 0xFFFFF0FF.toInt()
+                if (dmbBase == 0xD50330BF.toInt()) {
+                    val option = (op ushr 8) and 0xF
+                    val optName = when (option) {
+                        0xF -> "sy"; 0xE -> "st"; 0xD -> "ld"
+                        0xB -> "ish"; 0xA -> "ishst"; 0x9 -> "ishld"
+                        0x7 -> "nsh"; 0x6 -> "nshst"; 0x5 -> "nshld"
+                        0x3 -> "osh"; 0x2 -> "oshst"; 0x1 -> "oshld"
+                        else -> "#$option"
+                    }
+                    DecodedInsn("dmb", listOf(Operand.Reg(optName)), op)
+                } else {
+                    DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+                }
+            }
+        }
     }
 
     // bits 31..25 = 0b1101011 (br/blr/ret)
@@ -835,8 +899,9 @@ object Arm64Decoder {
         val rd   = op and 0x1F
         // destination arrangement (narrow result)
         val destArr = vArrFor(q, size)
-        // source arrangement: same lane count, element size doubled → size+1
-        val srcArr  = vArrFor(0, size + 1)   // q=0 for 2-lanes (always 64-bit wide src side)
+        // source arrangement: XTN/XTN2 source is always 128-bit (Q=1), element size doubled.
+        // ARM ARM C7.2.382: source operand is always the full 128-bit vector register.
+        val srcArr  = vArrFor(1, size + 1)
         val mnem = if (q == 0) "xtn" else "xtn2"
         return DecodedInsn(
             mnem,
