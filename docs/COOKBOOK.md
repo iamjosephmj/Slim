@@ -361,3 +361,48 @@ expose linking; it's V3 work.
 If you've built a NEON kernel that's general-purpose enough to be
 useful to others, PRs are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md)
 for guidelines.
+
+## Debugging your kernel
+
+When a `slim { }` kernel produces unexpected output, inspect what
+actually got compiled with the disassembler:
+
+```kotlin
+Slim.debug = true                         // enable source-line capture
+
+val asm: String = Slim.preview {
+    mov(X1, X0)
+    val loop = bindLabel("loop")
+    ld1(V0, X1, S4)
+    fmul(V0, V0, V0, S4)
+    st1(V0, X1, S4)
+    add(X1, X1, 16)
+    sub(W3, W3, 4)
+    cbnz(W3, loop)
+}
+
+println(asm)
+```
+
+Output:
+
+```
+  0000  aa0003e1  mov    x1, x0               // MyKernel.kt:42
+loop:
+  0004  4cc07c20  ld1    {v0.4s}, [x1]        // MyKernel.kt:44
+  0008  6e20dc00  fmul   v0.4s, v0.4s, v0.4s  // MyKernel.kt:45
+  000c  4c007c20  st1    {v0.4s}, [x1]        // MyKernel.kt:46
+  0010  91004021  add    x1, x1, #0x10        // MyKernel.kt:47
+  0014  51001063  sub    w3, w3, #4           // MyKernel.kt:48
+  0018  35ffff83  cbnz   w3, loop             // MyKernel.kt:49
+```
+
+`Slim.debug` adds ~1–3 µs per emitted instruction (stack walk to capture
+the originating Kotlin file:line). Leave it off in production.
+
+For an already-compiled kernel, call `disassemble()` on its handle:
+
+```kotlin
+val handle = compileMyKernel(...)
+println(handle.disassemble())
+```

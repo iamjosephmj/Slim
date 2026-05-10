@@ -274,6 +274,14 @@ slim(data) {
 }
 ```
 
+### Debugging
+
+`Slim.debug = true` enables source-line capture during kernel encoding.
+`Slim.preview { ... }` and `KernelHandle.disassemble()` return formatted
+ARM64 assembly with the originating Kotlin file:line per instruction.
+See [`docs/COOKBOOK.md`](docs/COOKBOOK.md#debugging-your-kernel) for an
+example.
+
 ---
 
 ## 🍳 Examples
