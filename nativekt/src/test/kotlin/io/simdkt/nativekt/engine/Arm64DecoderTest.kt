@@ -533,6 +533,232 @@ class Arm64DecoderTest {
         )
     }
 
+    // ------------------------------------------------------------------
+    // Load/store family: paired assertDec for every assertEnc in
+    // Arm64Test.kt:{gpLoadStoreImm, ldpStp, simdMemory, preIndexLoads}
+    // ------------------------------------------------------------------
+
+    @Test fun gpLoadStoreImm() {
+        // str w1, [x0]  — Arm64Test.kt:gpLoadStoreImm line 37
+        assertDec(
+            0xb9000001.toInt(),
+            DecodedInsn(
+                "str",
+                listOf(Operand.Reg("w1"), Operand.MemAddr(Operand.Reg("x0"), null, AddrMode.OFFSET)),
+                0xb9000001.toInt(),
+            ),
+        )
+        // str w1, [x0, #8]  — Arm64Test.kt:gpLoadStoreImm line 38
+        assertDec(
+            0xb9000801.toInt(),
+            DecodedInsn(
+                "str",
+                listOf(Operand.Reg("w1"), Operand.MemAddr(Operand.Reg("x0"), Operand.Imm(8, ImmFormat.DEC), AddrMode.OFFSET)),
+                0xb9000801.toInt(),
+            ),
+        )
+        // ldr x0, [x1]  — Arm64Test.kt:gpLoadStoreImm line 39
+        assertDec(
+            0xf9400020.toInt(),
+            DecodedInsn(
+                "ldr",
+                listOf(Operand.Reg("x0"), Operand.MemAddr(Operand.Reg("x1"), null, AddrMode.OFFSET)),
+                0xf9400020.toInt(),
+            ),
+        )
+        // ldr x0, [x1, #16]  — Arm64Test.kt:gpLoadStoreImm line 40
+        assertDec(
+            0xf9400820.toInt(),
+            DecodedInsn(
+                "ldr",
+                listOf(Operand.Reg("x0"), Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(16, ImmFormat.DEC), AddrMode.OFFSET)),
+                0xf9400820.toInt(),
+            ),
+        )
+        // str x2, [x3, #8]  — Arm64Test.kt:gpLoadStoreImm line 41
+        assertDec(
+            0xf9000462.toInt(),
+            DecodedInsn(
+                "str",
+                listOf(Operand.Reg("x2"), Operand.MemAddr(Operand.Reg("x3"), Operand.Imm(8, ImmFormat.DEC), AddrMode.OFFSET)),
+                0xf9000462.toInt(),
+            ),
+        )
+        // ldr w0, [x1, #4]  — Arm64Test.kt:gpLoadStoreImm line 42
+        assertDec(
+            0xb9400420.toInt(),
+            DecodedInsn(
+                "ldr",
+                listOf(Operand.Reg("w0"), Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(4, ImmFormat.DEC), AddrMode.OFFSET)),
+                0xb9400420.toInt(),
+            ),
+        )
+        // ldrb w0, [x1, #1]  — Arm64Test.kt:gpLoadStoreImm line 43
+        assertDec(
+            0x39400420.toInt(),
+            DecodedInsn(
+                "ldrb",
+                listOf(Operand.Reg("w0"), Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(1, ImmFormat.DEC), AddrMode.OFFSET)),
+                0x39400420.toInt(),
+            ),
+        )
+        // strb w0, [x1, #1]  — Arm64Test.kt:gpLoadStoreImm line 44
+        assertDec(
+            0x39000420.toInt(),
+            DecodedInsn(
+                "strb",
+                listOf(Operand.Reg("w0"), Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(1, ImmFormat.DEC), AddrMode.OFFSET)),
+                0x39000420.toInt(),
+            ),
+        )
+    }
+
+    @Test fun ldpStp() {
+        // stp x29, x30, [sp, #16]  — Arm64Test.kt:ldpStp line 48
+        assertDec(
+            0xa9017bfd.toInt(),
+            DecodedInsn(
+                "stp",
+                listOf(
+                    Operand.Reg("x29"),
+                    Operand.Reg("x30"),
+                    Operand.MemAddr(Operand.Reg("sp"), Operand.Imm(16, ImmFormat.DEC), AddrMode.OFFSET),
+                ),
+                0xa9017bfd.toInt(),
+            ),
+        )
+        // ldp q0, q1, [x2]  — Arm64Test.kt:ldpStp line 49
+        assertDec(
+            0xad400440.toInt(),
+            DecodedInsn(
+                "ldp",
+                listOf(
+                    Operand.VecReg("q0", null),
+                    Operand.VecReg("q1", null),
+                    Operand.MemAddr(Operand.Reg("x2"), null, AddrMode.OFFSET),
+                ),
+                0xad400440.toInt(),
+            ),
+        )
+        // stp q0, q1, [x2]  — Arm64Test.kt:ldpStp line 50
+        assertDec(
+            0xad000440.toInt(),
+            DecodedInsn(
+                "stp",
+                listOf(
+                    Operand.VecReg("q0", null),
+                    Operand.VecReg("q1", null),
+                    Operand.MemAddr(Operand.Reg("x2"), null, AddrMode.OFFSET),
+                ),
+                0xad000440.toInt(),
+            ),
+        )
+    }
+
+    @Test fun preIndexLoads() {
+        // stp x29,x30,[sp,#-16]!  — Arm64Test.kt:preIndexLoads line 259-260
+        assertDec(
+            0xa9bf7bfd.toInt(),
+            DecodedInsn(
+                "stp",
+                listOf(
+                    Operand.Reg("x29"),
+                    Operand.Reg("x30"),
+                    Operand.MemAddr(Operand.Reg("sp"), Operand.Imm(-16, ImmFormat.DEC), AddrMode.PRE_INDEXED),
+                ),
+                0xa9bf7bfd.toInt(),
+            ),
+        )
+        // ldp x29,x30,[sp],#16  — Arm64Test.kt:preIndexLoads line 261-262
+        assertDec(
+            0xa8c17bfd.toInt(),
+            DecodedInsn(
+                "ldp",
+                listOf(
+                    Operand.Reg("x29"),
+                    Operand.Reg("x30"),
+                    Operand.MemAddr(Operand.Reg("sp"), Operand.Imm(16, ImmFormat.DEC), AddrMode.POST_INDEXED),
+                ),
+                0xa8c17bfd.toInt(),
+            ),
+        )
+        // ldr x0,[x1,#8]!  — Arm64Test.kt:preIndexLoads line 263-264
+        assertDec(
+            0xf8408c20.toInt(),
+            DecodedInsn(
+                "ldr",
+                listOf(
+                    Operand.Reg("x0"),
+                    Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(8, ImmFormat.DEC), AddrMode.PRE_INDEXED),
+                ),
+                0xf8408c20.toInt(),
+            ),
+        )
+        // ldr x0,[x1],#8  — Arm64Test.kt:preIndexLoads line 265-266
+        assertDec(
+            0xf8408420.toInt(),
+            DecodedInsn(
+                "ldr",
+                listOf(
+                    Operand.Reg("x0"),
+                    Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(8, ImmFormat.DEC), AddrMode.POST_INDEXED),
+                ),
+                0xf8408420.toInt(),
+            ),
+        )
+        // str x0,[x1,#-8]!  — Arm64Test.kt:preIndexLoads line 267-268
+        assertDec(
+            0xf81f8c20.toInt(),
+            DecodedInsn(
+                "str",
+                listOf(
+                    Operand.Reg("x0"),
+                    Operand.MemAddr(Operand.Reg("x1"), Operand.Imm(-8, ImmFormat.DEC), AddrMode.PRE_INDEXED),
+                ),
+                0xf81f8c20.toInt(),
+            ),
+        )
+    }
+
+    @Test fun simdMemory() {
+        // ld1 {v0.16b}, [x1]  — Arm64Test.kt:simdMemory line 150
+        assertDec(
+            0x4c407020.toInt(),
+            DecodedInsn(
+                "ld1",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.MemAddr(Operand.Reg("x1"), null, AddrMode.OFFSET),
+                ),
+                0x4c407020.toInt(),
+            ),
+        )
+        // st1 {v0.16b}, [x1]  — Arm64Test.kt:simdMemory line 151
+        assertDec(
+            0x4c007020.toInt(),
+            DecodedInsn(
+                "st1",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.B16),
+                    Operand.MemAddr(Operand.Reg("x1"), null, AddrMode.OFFSET),
+                ),
+                0x4c007020.toInt(),
+            ),
+        )
+        // ld1r {v0.4s}, [x1]  — Arm64Test.kt:simdMemory line 152
+        assertDec(
+            0x4d40c820.toInt(),
+            DecodedInsn(
+                "ld1r",
+                listOf(
+                    Operand.VecReg("v0", Arm64.VArr.S4),
+                    Operand.MemAddr(Operand.Reg("x1"), null, AddrMode.OFFSET),
+                ),
+                0x4d40c820.toInt(),
+            ),
+        )
+    }
+
     @Test fun condSelectReg() {
         // csel x0, x1, x2, eq  — Arm64Test.kt:condSelect line 206-207
         assertDec(

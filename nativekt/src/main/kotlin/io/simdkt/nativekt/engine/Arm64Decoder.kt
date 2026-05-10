@@ -9,6 +9,7 @@ object Arm64Decoder {
         isRegisterBranch(op)      -> decodeRegisterBranch(op)
         isDataProcImm(op)         -> decodeDataProcImm(op)
         isDataProcReg(op)         -> decodeDataProcReg(op)
+        isLoadStore(op)           -> decodeLoadStore(op)
         else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
     }
 
@@ -593,6 +594,247 @@ object Arm64Decoder {
             ),
             op,
         )
+    }
+
+    // -----------------------------------------------------------------
+    // Load/Store family
+    // Three structurally distinct sub-encodings dispatched here.
+    // -----------------------------------------------------------------
+
+    private fun isLoadStore(op: Int): Boolean =
+        isAdvSimdLoadStoreMulti(op) || isLoadStoreRegImm(op) || isLoadStorePair(op)
+
+    private fun decodeLoadStore(op: Int): DecodedInsn = when {
+        isAdvSimdLoadStoreMulti(op) -> decodeAdvSimdLoadStoreMulti(op)
+        isLoadStorePair(op)         -> decodeLoadStorePair(op)
+        isLoadStoreRegImm(op)       -> decodeLoadStoreRegImm(op)
+        else -> DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+    }
+
+    // -----------------------------------------------------------------
+    // SIMD multi-structure load/store (LD1/ST1 one register, all lanes)
+    //   0 Q 0011000 L 000000 opcode size Rn Rt   (bits[29:23] = 0011000)
+    //
+    // LD1R (replicate one element to all lanes):
+    //   0 Q 0011010 1 000000 110 0 size Rn Rt     (bits[29:23] = 0011010)
+    // -----------------------------------------------------------------
+
+    // bits[29:23] = 0011000 (0x18)  — ld1/st1 multi-struct
+    private fun isAdvSimdLoadStoreMultiOpc(op: Int): Boolean =
+        (op ushr 23) and 0x7F == 0b0011000
+
+    // bits[29:23] = 0011010 (0x1A)  — ld1r replicate
+    private fun isAdvSimdLoadStoreSingleReplicate(op: Int): Boolean =
+        (op ushr 23) and 0x7F == 0b0011010
+
+    private fun isAdvSimdLoadStoreMulti(op: Int): Boolean =
+        isAdvSimdLoadStoreMultiOpc(op) || isAdvSimdLoadStoreSingleReplicate(op)
+
+    private fun decodeAdvSimdLoadStoreMulti(op: Int): DecodedInsn {
+        val q    = (op ushr 30) and 1
+        val l    = (op ushr 22) and 1
+        val size = (op ushr 10) and 0b11
+        val rn   = (op ushr  5) and 0x1F
+        val rt   = op and 0x1F
+        val arr  = vArrFor(q, size)
+        val rnName = if (rn == 31) "sp" else "x$rn"
+        val memAddr = Operand.MemAddr(Operand.Reg(rnName), null)
+        return if (isAdvSimdLoadStoreSingleReplicate(op)) {
+            // LD1R — load and replicate
+            DecodedInsn(
+                "ld1r",
+                listOf(Operand.VecReg("v$rt", arr), memAddr),
+                op,
+            )
+        } else {
+            val mnem = if (l == 1) "ld1" else "st1"
+            DecodedInsn(
+                mnem,
+                listOf(Operand.VecReg("v$rt", arr), memAddr),
+                op,
+            )
+        }
+    }
+
+    private fun vArrFor(q: Int, size: Int): Arm64.VArr = when {
+        q == 0 && size == 0 -> Arm64.VArr.B8;  q == 1 && size == 0 -> Arm64.VArr.B16
+        q == 0 && size == 1 -> Arm64.VArr.H4;  q == 1 && size == 1 -> Arm64.VArr.H8
+        q == 0 && size == 2 -> Arm64.VArr.S2;  q == 1 && size == 2 -> Arm64.VArr.S4
+        q == 0 && size == 3 -> Arm64.VArr.D1;  else                 -> Arm64.VArr.D2
+    }
+
+    // -----------------------------------------------------------------
+    // GP load/store — register immediate
+    // Unsigned-offset:   size 111 0 01 opc imm12 Rn Rt   (bit24=1)
+    // Pre/post-indexed:  size 111 0 00 opc 0 imm9 idx Rn Rt  (bit24=0, bit21=0)
+    //
+    // bit[24]=1 → unsigned-offset (imm12 in bits[21:10])
+    // bit[24]=0, bit[21]=0 → pre/post-index (imm9 in bits[20:12], idx in bits[11:10])
+    //   idx=0b11 = pre-indexed, idx=0b01 = post-indexed
+    // -----------------------------------------------------------------
+
+    // bits[29:27] = 111, bit[26] = 0 → GP load/store register
+    private fun isLoadStoreRegImm(op: Int): Boolean =
+        (op ushr 27) and 0b111 == 0b111 && (op ushr 26) and 1 == 0
+
+    private fun decodeLoadStoreRegImm(op: Int): DecodedInsn {
+        val size  = (op ushr 30) and 0b11   // 00=byte, 01=half, 10=word, 11=double
+        val opc   = (op ushr 22) and 0b11   // 01=load, 00=store
+        val bit24 = (op ushr 24) and 1
+        val bit21 = (op ushr 21) and 1
+        val rn    = (op ushr  5) and 0x1F
+        val rt    = op and 0x1F
+
+        val isLoad = opc == 0b01
+
+        // Register name: for memory base, reg 31 = SP
+        val rnName = if (rn == 31) "sp" else "x$rn"
+
+        // Destination/source register naming depends on size
+        val rtName = when (size) {
+            0b11 -> "x$rt"  // double-word → X register
+            else -> "w$rt"  // byte/half/word → W register
+        }
+
+        val mnem = when {
+            size == 0b11 && isLoad  -> "ldr"
+            size == 0b11 && !isLoad -> "str"
+            size == 0b10 && isLoad  -> "ldr"
+            size == 0b10 && !isLoad -> "str"
+            size == 0b01 && isLoad  -> "ldrh"
+            size == 0b01 && !isLoad -> "strh"
+            size == 0b00 && isLoad  -> "ldrb"
+            else                    -> "strb"
+        }
+
+        return if (bit24 == 1) {
+            // Unsigned-offset: imm12 in bits[21:10], scaled by access size
+            val imm12 = (op ushr 10) and 0xFFF
+            val scale = size     // byte=0, half=1, word=2, double=3
+            val byteOffset = imm12 shl scale
+            val offsetOp = if (byteOffset == 0) null
+                           else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
+            DecodedInsn(
+                mnem,
+                listOf(Operand.Reg(rtName), Operand.MemAddr(Operand.Reg(rnName), offsetOp)),
+                op,
+            )
+        } else if (bit21 == 0) {
+            // Pre/post-indexed: imm9 in bits[20:12] (signed), idx in bits[11:10]
+            val imm9raw = (op ushr 12) and 0x1FF
+            val imm9    = signExtend(imm9raw, 9)
+            val idx     = (op ushr 10) and 0b11
+            val mode = when (idx) {
+                0b11 -> AddrMode.PRE_INDEXED
+                0b01 -> AddrMode.POST_INDEXED
+                else -> AddrMode.OFFSET   // unscaled (LDUR/STUR) — treat as offset
+            }
+            val offsetOp = if (imm9 == 0) null else Operand.Imm(imm9.toLong(), ImmFormat.DEC)
+            DecodedInsn(
+                mnem,
+                listOf(Operand.Reg(rtName), Operand.MemAddr(Operand.Reg(rnName), offsetOp, mode)),
+                op,
+            )
+        } else {
+            // Register-offset (bit21=1) — not in scope for this task
+            DecodedInsn("?", listOf(Operand.Unknown(op)), op)
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // Load/store pair (LDP/STP)
+    //   opc 101 V mode L imm7 Rt2 Rn Rt
+    //   bits[29:27] = 101
+    //   mode (bits[25:23]): 010=signed-offset, 011=pre-indexed, 001=post-indexed
+    //
+    // opc[31:30] + V[26]:
+    //   00 V=0 → W register pair, scale=2
+    //   10 V=0 → X register pair, scale=3
+    //   10 V=1 → Q register pair (SIMD 128-bit), scale=4
+    // -----------------------------------------------------------------
+
+    private fun isLoadStorePair(op: Int): Boolean =
+        (op ushr 27) and 0b111 == 0b101
+
+    private fun decodeLoadStorePair(op: Int): DecodedInsn {
+        val opc  = (op ushr 30) and 0b11
+        val v    = (op ushr 26) and 1
+        val mode3 = (op ushr 23) and 0b111  // bits[25:23]
+        val l    = (op ushr 22) and 1       // 1=load, 0=store
+        val imm7raw = (op ushr 15) and 0x7F
+        val imm7 = signExtend(imm7raw, 7)
+        val rt2  = (op ushr 10) and 0x1F
+        val rn   = (op ushr  5) and 0x1F
+        val rt   = op and 0x1F
+
+        val mnem = if (l == 1) "ldp" else "stp"
+
+        // Address mode from bits[25:23]
+        val addrMode = when (mode3) {
+            0b010 -> AddrMode.OFFSET
+            0b011 -> AddrMode.PRE_INDEXED
+            0b001 -> AddrMode.POST_INDEXED
+            else  -> AddrMode.OFFSET   // fallback
+        }
+
+        val rnName = if (rn == 31) "sp" else "x$rn"
+
+        // Determine scale and register names
+        // opc=10, V=0 → 64-bit X regs, scale=3
+        // opc=00, V=0 → 32-bit W regs, scale=2
+        // opc=10, V=1 → 128-bit Q regs, scale=4
+        return when {
+            v == 1 -> {
+                // SIMD/FP pair — Q registers
+                val scale = when (opc) {
+                    0b10 -> 4  // Q (128-bit)
+                    0b01 -> 3  // D (64-bit)
+                    else -> 2  // S (32-bit)
+                }
+                val byteOffset = imm7 shl scale
+                val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
+                               else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
+                DecodedInsn(
+                    mnem,
+                    listOf(
+                        Operand.VecReg("q$rt",  null),
+                        Operand.VecReg("q$rt2", null),
+                        Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
+                    ),
+                    op,
+                )
+            }
+            opc == 0b10 -> {
+                // 64-bit X register pair, scale=3
+                val byteOffset = imm7 shl 3
+                val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
+                               else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
+                DecodedInsn(
+                    mnem,
+                    listOf(
+                        Operand.Reg("x$rt"),
+                        Operand.Reg("x$rt2"),
+                        Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
+                    ),
+                    op,
+                )
+            }
+            else -> {
+                // 32-bit W register pair, scale=2
+                val byteOffset = imm7 shl 2
+                val offsetOp = if (byteOffset == 0 && addrMode == AddrMode.OFFSET) null
+                               else Operand.Imm(byteOffset.toLong(), ImmFormat.DEC)
+                DecodedInsn(
+                    mnem,
+                    listOf(
+                        Operand.Reg("w$rt"),
+                        Operand.Reg("w$rt2"),
+                        Operand.MemAddr(Operand.Reg(rnName), offsetOp, addrMode),
+                    ),
+                    op,
+                )
+            }
+        }
     }
 
     private fun signExtend(value: Int, bits: Int): Int {
