@@ -1,81 +1,98 @@
 <div align="center">
 
+```
+       ▓▓▓▓     ░░         ▓▓▓▓▓▓     ░░░░
+       ▓▓▓▓     ░░         ▓▓▓▓▓▓     ░░░░
+                ░░                    ░░░░
+       ░░░░     ░░         ░░░░       ░░░░
+       ░░░░     ▓▓         ░░░░       ▓▓▓▓
+                ▓▓                    ▓▓▓▓
+       ████     ▓▓         ████       ▓▓▓▓
+       ████     ████       ████       ████
+                ████                  ████
+
+     ██████╗ ██╗      ██╗ ███╗   ███╗
+     ██╔════╝ ██║      ██║ ████╗ ████║
+     ███████╗ ██║      ██║ ██╔████╔██║
+     ╚════██║ ██║      ██║ ██║╚██╔╝██║
+     ██████╔╝ ███████╗ ██║ ██║ ╚═╝ ██║
+     ╚═════╝  ╚══════╝ ╚═╝ ╚═╝     ╚═╝
+```
+
 <a href="https://github.com/iamjosephmj/Slim">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F2027,50:203A43,100:2C5364&height=260&section=header&text=SLIM&fontSize=110&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=ARM64%20NEON%20kernels%20in%20pure%20Kotlin%20%E2%80%94%20no%20JNI%20per%20call&descAlignY=60&descSize=20&descColor=B0BEC5" alt="Slim — ARM64 NEON kernels in pure Kotlin"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:1A0033,33:00FFFF,66:FF00FF,100:1A0033&height=4&section=header" alt="bar"/>
 </a>
 
 <br/>
 
 <a href="https://readme-typing-svg.demolab.com">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=3200&pause=900&color=00E5FF&center=true&vCenter=true&multiline=false&width=760&lines=Write+ARM64+NEON+code+in+Kotlin;Run+it+on+Android.+No+JNI+per+call;%C2%B7+6.95%C3%97+faster+than+JIT-optimized+Kotlin+%C2%B7;Pure-Kotlin+shellcode+via+ART+entry-point+hijack" alt="Slim taglines"/>
+  <img src="https://readme-typing-svg.demolab.com?font=Press+Start+2P&weight=400&size=18&duration=2400&pause=600&color=00FFFF&center=true&vCenter=true&multiline=false&width=820&height=46&lines=%E2%96%B6+PLAYER+1+%3A+READY;%E2%96%B6+ARM64+NEON+%C3%97+KOTLIN;%E2%96%B6+NO+JNI+PER+CALL;%E2%96%B6+6.95X+SPEEDRUN+%E2%80%94+CHALLENGE+APPROVED" alt="taglines"/>
 </a>
 
 <br/>
 <br/>
 
 <p>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-1976D2?style=for-the-badge&logo=apache&logoColor=white" alt="License"/></a>
-  <img src="https://img.shields.io/badge/minSdk-26-43A047?style=for-the-badge&logo=android&logoColor=white" alt="minSdk 26"/>
-  <img src="https://img.shields.io/badge/ABI-arm64--v8a-FB8C00?style=for-the-badge" alt="ABI arm64-v8a"/>
-  <img src="https://img.shields.io/badge/Version-0.1.0-8E24AA?style=for-the-badge" alt="Version 0.1.0"/>
-  <img src="https://img.shields.io/badge/Kotlin-2.x-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin 2.x"/>
-  <img src="https://img.shields.io/badge/Speedup-6.95×-FF1744?style=for-the-badge&logo=fastlane&logoColor=white" alt="6.95× speedup"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/LICENSE-APACHE_2.0-FF00FF?style=for-the-badge&labelColor=000000" alt="License"/></a>
+  <img src="https://img.shields.io/badge/MIN_SDK-26-00FFFF?style=for-the-badge&labelColor=000000&logo=android&logoColor=00FFFF" alt="minSdk 26"/>
+  <img src="https://img.shields.io/badge/ABI-arm64--v8a-FFFF00?style=for-the-badge&labelColor=000000" alt="ABI"/>
+  <img src="https://img.shields.io/badge/VERSION-0.1.0-00FF00?style=for-the-badge&labelColor=000000" alt="Version"/>
+  <img src="https://img.shields.io/badge/KOTLIN-2.x-FF0040?style=for-the-badge&labelColor=000000&logo=kotlin&logoColor=FF0040" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/SPEEDRUN-6.95×-FFA500?style=for-the-badge&labelColor=000000" alt="6.95×"/>
 </p>
 
 <p>
-  <a href="https://github.com/iamjosephmj/Slim/stargazers"><img src="https://img.shields.io/github/stars/iamjosephmj/Slim?style=flat-square&color=FFD600&logo=github" alt="Stars"/></a>
-  <a href="https://github.com/iamjosephmj/Slim/network/members"><img src="https://img.shields.io/github/forks/iamjosephmj/Slim?style=flat-square&color=00BCD4&logo=github" alt="Forks"/></a>
-  <a href="https://github.com/iamjosephmj/Slim/issues"><img src="https://img.shields.io/github/issues/iamjosephmj/Slim?style=flat-square&color=F44336&logo=github" alt="Issues"/></a>
-  <a href="https://github.com/iamjosephmj/Slim/pulls"><img src="https://img.shields.io/github/issues-pr/iamjosephmj/Slim?style=flat-square&color=4CAF50&logo=github" alt="PRs"/></a>
-  <img src="https://img.shields.io/github/last-commit/iamjosephmj/Slim?style=flat-square&color=00C853&logo=git&logoColor=white" alt="Last commit"/>
-  <img src="https://img.shields.io/github/repo-size/iamjosephmj/Slim?style=flat-square&color=9C27B0" alt="Repo size"/>
-  <img src="https://img.shields.io/github/languages/top/iamjosephmj/Slim?style=flat-square&color=FF6F00" alt="Top language"/>
-  <img src="https://img.shields.io/github/commit-activity/m/iamjosephmj/Slim?style=flat-square&color=2196F3" alt="Commits/month"/>
+  <a href="https://github.com/iamjosephmj/Slim/stargazers"><img src="https://img.shields.io/github/stars/iamjosephmj/Slim?style=flat-square&color=FFFF00&labelColor=000000&logo=github&logoColor=FFFF00&label=%E2%98%85%20STARS" alt="Stars"/></a>
+  <a href="https://github.com/iamjosephmj/Slim/network/members"><img src="https://img.shields.io/github/forks/iamjosephmj/Slim?style=flat-square&color=00FFFF&labelColor=000000&logo=github&logoColor=00FFFF&label=%E2%9A%92%20FORKS" alt="Forks"/></a>
+  <a href="https://github.com/iamjosephmj/Slim/issues"><img src="https://img.shields.io/github/issues/iamjosephmj/Slim?style=flat-square&color=FF0040&labelColor=000000&logo=github&logoColor=FF0040&label=%E2%9C%96%20BUGS" alt="Issues"/></a>
+  <a href="https://github.com/iamjosephmj/Slim/pulls"><img src="https://img.shields.io/github/issues-pr/iamjosephmj/Slim?style=flat-square&color=00FF00&labelColor=000000&logo=github&logoColor=00FF00&label=%E2%96%B2%20PRs" alt="PRs"/></a>
+  <img src="https://img.shields.io/github/last-commit/iamjosephmj/Slim?style=flat-square&color=FF00FF&labelColor=000000&logo=git&logoColor=FF00FF&label=%E2%9F%B2%20LAST%20COMMIT" alt="Last commit"/>
+  <img src="https://img.shields.io/github/repo-size/iamjosephmj/Slim?style=flat-square&color=FFA500&labelColor=000000&label=%E2%96%A1%20SIZE" alt="Repo size"/>
+  <img src="https://img.shields.io/github/languages/top/iamjosephmj/Slim?style=flat-square&color=00FFFF&labelColor=000000&label=%E2%96%A0%20LANG" alt="Top language"/>
+  <img src="https://img.shields.io/github/commit-activity/m/iamjosephmj/Slim?style=flat-square&color=FFFF00&labelColor=000000&label=%E2%96%BC%20COMMITS%2FMO" alt="Commits/month"/>
 </p>
 
 <br/>
 
-<a href="#-installation"><img src="https://img.shields.io/badge/📦_Installation-1A237E?style=for-the-badge" alt="Installation"/></a>
-<a href="#-quick-start"><img src="https://img.shields.io/badge/🚀_Quick_start-006064?style=for-the-badge" alt="Quick start"/></a>
-<a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/🔬_Architecture-4A148C?style=for-the-badge" alt="Architecture"/></a>
-<a href="docs/COOKBOOK.md"><img src="https://img.shields.io/badge/🍳_Cookbook-BF360C?style=for-the-badge" alt="Cookbook"/></a>
-<a href="docs/CONTRIBUTING.md"><img src="https://img.shields.io/badge/🤝_Contributing-1B5E20?style=for-the-badge" alt="Contributing"/></a>
+<a href="#-stage-1--installation"><img src="https://img.shields.io/badge/▶_STAGE_1-INSTALL-00FFFF?style=for-the-badge&labelColor=000000" alt="Stage 1"/></a>
+<a href="#-stage-2--quick-start"><img src="https://img.shields.io/badge/▶_STAGE_2-QUICK_START-FFFF00?style=for-the-badge&labelColor=000000" alt="Stage 2"/></a>
+<a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/▶_BOSS-ARCHITECTURE-FF00FF?style=for-the-badge&labelColor=000000" alt="Boss"/></a>
+<a href="docs/COOKBOOK.md"><img src="https://img.shields.io/badge/▶_BONUS-COOKBOOK-00FF00?style=for-the-badge&labelColor=000000" alt="Bonus"/></a>
+<a href="docs/CONTRIBUTING.md"><img src="https://img.shields.io/badge/▶_CO-OP-CONTRIBUTING-FF0040?style=for-the-badge&labelColor=000000" alt="Co-op"/></a>
 
 <br/>
 <br/>
 
 ```
-   ███████╗██╗     ██╗███╗   ███╗
-   ██╔════╝██║     ██║████╗ ████║
-   ███████╗██║     ██║██╔████╔██║
-   ╚════██║██║     ██║██║╚██╔╝██║
-   ███████║███████╗██║██║ ╚═╝ ██║
-   ╚══════╝╚══════╝╚═╝╚═╝     ╚═╝
+╔══════════════════════════════════════════════════════════════╗
+║   KOTLIN DSL  ─▶  ARM64 SHELLCODE  ─▶  ART QUICK-DISPATCH    ║
+║                          ─▶  ZERO-JNI EXECUTION              ║
+╚══════════════════════════════════════════════════════════════╝
 ```
-
-**`Kotlin DSL`** ⟶ **`ARM64 shellcode`** ⟶ **`ART quick-dispatch`** ⟶ **`zero-JNI native execution`**
 
 </div>
 
 > [!IMPORTANT]
-> Slim is a **runtime SIMD compiler for Android** that lets you write ARM64 NEON instructions inline in Kotlin and have them executed by the Android Runtime (ART) **as if they were JIT-compiled Kotlin** — no JNI hop, no separate `.so`, no NDK build, no scheduler in the way. The kernel runs at NEON-native throughput; the framing is plain Kotlin function calls.
+> **`INSERT COIN`** — Slim is a runtime SIMD compiler for Android that lets you write ARM64 NEON instructions inline in Kotlin and have them executed by the Android Runtime (ART) **as if they were JIT-compiled Kotlin** — no JNI hop, no separate `.so`, no NDK build, no scheduler in the way. The kernel runs at NEON-native throughput; the framing is plain Kotlin function calls.
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 <details>
-<summary><b>📑 Table of contents</b></summary>
+<summary><b>📜 SELECT STAGE — Table of contents</b></summary>
 
-- [A note before we start](#a-note-before-we-start)
-- [🧬 What it looks like](#-what-it-looks-like)
-- [⚡ Why](#-why)
-- [📦 Installation](#-installation)
-- [🚀 Quick start](#-quick-start)
-- [🧩 Core concepts](#-core-concepts)
-- [🍳 Examples](#-examples)
-- [🔬 How it works](#-how-it-works)
-- [📊 Performance](#-performance)
-- [📱 Supported devices](#-supported-devices)
-- [⚠️ Caveats and limitations](#-caveats-and-limitations)
+- [A NOTE BEFORE WE START](#a-note-before-we-start)
+- [🟦 What it looks like](#-what-it-looks-like)
+- [🟨 Why](#-why)
+- [🟧 STAGE 1 — Installation](#-stage-1--installation)
+- [🟪 STAGE 2 — Quick start](#-stage-2--quick-start)
+- [🟩 STAGE 3 — Core concepts](#-stage-3--core-concepts)
+- [🟥 STAGE 4 — Examples](#-stage-4--examples)
+- [👾 BOSS FIGHT — How it works](#-boss-fight--how-it-works)
+- [🏆 HIGH SCORES — Performance](#-high-scores--performance)
+- [🎮 Supported devices](#-supported-devices)
+- [⚠️ Caveats and limitations](#%EF%B8%8F-caveats-and-limitations)
 - [📚 Documentation](#-documentation)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
@@ -83,7 +100,9 @@
 
 </details>
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 ## A note before we start
 
@@ -109,15 +128,16 @@ I could reuse the trick for tight SIMD kernels without paying NDK's
 startup cost on every project.
 
 > [!TIP]
-> If you're here for the SDK, skip to **[Installation](#-installation)**.
-> If you came for the boundary stuff, the
-> [Architecture doc](docs/ARCHITECTURE.md) walks every line we end up
-> crossing: memfd dual-map (W^X), entry-point hijack (managed/native),
+> **`PRESS START`** — for the SDK, skip to [STAGE 1: Installation](#-stage-1--installation).
+> For the boundary stuff, the [Architecture doc](docs/ARCHITECTURE.md)
+> walks every line we cross: memfd dual-map (W^X), entry-point hijack,
 > four-tier hidden-API bypass.
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 🧬 What it looks like
+## 🟦 What it looks like
 
 ```kotlin
 val pixels = Floats(myFloatArray)
@@ -148,17 +168,19 @@ The runtime handles JIT memory, ART internals, and dispatch.
 <div align="center">
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  slim { ... }   →   encode NEON   →   memfd R/X   →   exec  │
-│      Kotlin DSL        ~5 µs         shared pages    native │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  slim { ... }   →   encode NEON   →   memfd R/X   →   exec   │
+│      Kotlin DSL        ~5 µs         shared pages    native  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 </div>
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## ⚡ Why
+## 🟨 Why
 
 If you've written SIMD on Android, you've used one of these:
 
@@ -174,50 +196,11 @@ JIT-compiles them into native code, and ART dispatches the kernel via a
 hijacked entry-point — no JNI, no separate build artifact, no scheduler
 in the way.
 
-> [!NOTE]
-> 📈 **Measured on Samsung S24 (Android 16, Cortex-X4):** SAXPY-style brightness kernel over a 16 MB float buffer.
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-<div align="center">
-
-<table>
-<tr>
-<td align="center" width="200">
-
-### 🐢 Kotlin scalar
-**`5.32 ms`**
-3.0 GB/s
-*1.0× baseline*
-
-</td>
-<td align="center" width="200">
-
-### ⚡ Slim
-*FloatArray (eager copy)*
-**`2.22 ms`**
-7.2 GB/s
-*2.4×*
-
-</td>
-<td align="center" width="200">
-
-### 🚀 Slim
-*Floats (zero-copy)*
-**`0.76 ms`** 🔥
-**23.4 GB/s**
-**`6.95×`**
-
-</td>
-</tr>
-</table>
-
-</div>
-
-> [!TIP]
-> Concurrency: 200 dispatches across 4 coroutines complete in 67 ms with zero races. Probe-pool serves up to 8 in-flight kernels.
-
----
-
-## 📦 Installation
+## 🟧 STAGE 1 — Installation
 
 ```kotlin
 // settings.gradle.kts (or your repos block)
@@ -241,13 +224,15 @@ dependencies {
 ```
 
 > [!WARNING]
-> **Status: 0.1.0 — V1 internal release.** Public API shape is stable
+> **`STATUS: 0.1.0 — V1 INTERNAL RELEASE`** Public API shape is stable
 > (the `Slim` / `slim {}` surface won't change incompatibly), but the
 > underlying engine is still validating against new Android releases.
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 🚀 Quick start
+## 🟪 STAGE 2 — Quick start
 
 ```kotlin
 import io.simdkt.slim.Slim
@@ -280,9 +265,11 @@ class MyViewModel : ViewModel() {
 }
 ```
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 🧩 Core concepts
+## 🟩 STAGE 3 — Core concepts
 
 ### `Slim.initialize(context)`
 
@@ -354,17 +341,18 @@ slim(data) {
 }
 ```
 
-### Debugging
+### Debugging — `1UP` mode
 
 `Slim.debug = true` enables source-line capture during kernel encoding.
 `Slim.preview { ... }` and `KernelHandle.disassemble()` return formatted
 ARM64 assembly with the originating Kotlin file:line per instruction.
-See [`docs/COOKBOOK.md`](docs/COOKBOOK.md#debugging-your-kernel) for an
-example.
+See [`docs/COOKBOOK.md`](docs/COOKBOOK.md#debugging-your-kernel).
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 🍳 Examples
+## 🟥 STAGE 4 — Examples
 
 ### Brightness adjustment (SAXPY: y = a·x + b)
 
@@ -437,14 +425,17 @@ See [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for SAXPY, dot product,
 brightness/contrast, alpha blending, RGB→grayscale, box blur, debugging
 your kernel, and more.
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 🔬 How it works
+## 👾 BOSS FIGHT — How it works
 
 Slim sits on top of three pieces of ART internals plumbing — setup once,
 encode per kernel, dispatch per call:
 
 ```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#1A0033', 'primaryTextColor':'#00FFFF', 'primaryBorderColor':'#FF00FF', 'lineColor':'#FFFF00', 'secondaryColor':'#330066', 'tertiaryColor':'#000000' }}}%%
 flowchart TB
     subgraph Setup["🔧 Slim.initialize() — once per process"]
         H1["Hidden-API bypass<br/>(4-tier cascade)"]
@@ -474,12 +465,13 @@ flowchart TB
 The dispatch path itself, traced as a sequence:
 
 ```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'actorBkg':'#1A0033', 'actorBorder':'#FF00FF', 'actorTextColor':'#00FFFF', 'signalColor':'#FFFF00', 'signalTextColor':'#FFFFFF', 'noteBkgColor':'#330066', 'noteTextColor':'#00FF00', 'noteBorderColor':'#FF00FF' }}}%%
 sequenceDiagram
     autonumber
-    participant K as 🟣 Kotlin call site
-    participant ART as 🟠 ART runtime
-    participant AM as 🟡 ArtMethod
-    participant RX as 🟢 memfd R/X page
+    participant K as 🟪 Kotlin call site
+    participant ART as 🟧 ART runtime
+    participant AM as 🟨 ArtMethod
+    participant RX as 🟩 memfd R/X page
 
     Note over K,RX: Slim.initialize() done once — bypass passed, offsets cached
 
@@ -521,14 +513,37 @@ For the full architectural walkthrough — including how the encoder's
 two-pass label fixup works, how the kernel cache is keyed, and the
 concurrency model — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 📊 Performance
+## 🏆 HIGH SCORES — Performance
 
 On a Samsung S24 (Cortex-X4, Android 16), 1024×1024 RGBA-as-float kernel
 applying `y = 0.5·x`:
 
+<div align="center">
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              ✦  HI — SCORE   SAXPY  KERNEL  ✦                ║
+║              ────────────────────────────────                ║
+║                                                              ║
+║   1ST   SLIM  (zero-copy)        23.4  GB/s   ★★★            ║
+║   2ND   SLIM  (FloatArray)        7.2  GB/s   ★★             ║
+║   3RD   KOTLIN  scalar            3.0  GB/s   ★              ║
+║                                                              ║
+║              ────────────────────────────────                ║
+║                  P L A Y E R   1   W I N S                   ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+</div>
+
 ```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'xyChart': { 'backgroundColor':'#000000', 'titleColor':'#00FFFF', 'xAxisLabelColor':'#FFFF00', 'yAxisLabelColor':'#FFFF00', 'plotColorPalette':'#FF00FF, #00FFFF, #00FF00' }}}%%
 xychart-beta
     title "Throughput (GB/s) — higher is better"
     x-axis ["Kotlin scalar", "Slim (FloatArray)", "Slim (Floats, zero-copy)"]
@@ -551,11 +566,13 @@ xychart-beta
 </div>
 
 > [!TIP]
-> Probe pool serves up to **8 in-flight** kernels before blocking. Different kernels run in parallel; same-kernel calls serialize via a per-handle `Mutex`.
+> **`COMBO MULTIPLIER`** — probe pool serves up to **8 in-flight** kernels before blocking. Different kernels run in parallel; same-kernel calls serialize via a per-handle `Mutex`.
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
-## 📱 Supported devices
+## 🎮 Supported devices
 
 |  | |
 |---|---|
@@ -572,12 +589,14 @@ The runtime requires:
   walks them).
 - `memfd_create` syscall (Linux 3.17+, present on all supported APIs).
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 ## ⚠️ Caveats and limitations
 
 > [!CAUTION]
-> Slim does invasive things to the runtime. Read these before shipping.
+> **`DANGER — INVASIVE OPERATIONS`** Slim does invasive things to the runtime. Read these before shipping.
 
 <details>
 <summary><b>Hidden-API bypass is invasive</b></summary>
@@ -630,7 +649,9 @@ blocks at build time is on the roadmap (see `ENCODER_V2_PLAN.md`
 Tier 5).
 </details>
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 ## 📚 Documentation
 
@@ -644,7 +665,9 @@ Tier 5).
 | **[`SDK_PLAN.md`](SDK_PLAN.md)** | Original V1 build plan (historical). |
 | **[`ENCODER_V2_PLAN.md`](ENCODER_V2_PLAN.md)** | V2 encoder roadmap with what shipped (Tiers 1–4) and what's deferred (Tier 5). |
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 ## 🤝 Contributing
 
@@ -662,7 +685,7 @@ issue first to discuss design.
 
 <div align="center">
 
-### ⭐ Star history
+### ★ STAR HISTORY ★
 
 <a href="https://www.star-history.com/#iamjosephmj/Slim&Date">
   <picture>
@@ -672,7 +695,7 @@ issue first to discuss design.
   </picture>
 </a>
 
-### 👥 Contributors
+### ▼ PLAYERS ▼
 
 <a href="https://github.com/iamjosephmj/Slim/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=iamjosephmj/Slim" alt="Contributors"/>
@@ -680,13 +703,17 @@ issue first to discuss design.
 
 </div>
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 ## 📄 License
 
 Apache 2.0. See [`LICENSE`](LICENSE).
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 ## 🙏 Acknowledgments
 
@@ -698,12 +725,31 @@ Android reflection community — particularly LSPosed's
 documentation. The ARM64 instruction encoder cross-checks against
 LLVM's `AArch64InstPrinter` golden bytes via `clang+llvm-objdump`.
 
----
+```
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+```
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2C5364,50:203A43,100:0F2027&height=140&section=footer&text=Built%20for%20tight%20SIMD%20on%20Android&fontSize=22&fontColor=ffffff&fontAlignY=70&animation=fadeIn" alt="footer"/>
+```
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║                        G A M E   O V E R                     ║
+║                                                              ║
+║                  CONTINUE?       Y  ──  N                    ║
+║                                                              ║
+║                  ★  INSERT  COIN  TO  CONTINUE  ★            ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+```
 
-<a href="#"><img src="https://img.shields.io/badge/⬆%20back%20to%20top-263238?style=for-the-badge"/></a>
+<a href="https://readme-typing-svg.demolab.com">
+  <img src="https://readme-typing-svg.demolab.com?font=Press+Start+2P&size=14&duration=1800&pause=600&color=FF00FF&center=true&vCenter=true&width=460&lines=THANKS+FOR+PLAYING;BUILT+FOR+TIGHT+SIMD;%E2%98%85+%E2%98%85+%E2%98%85" alt="thanks"/>
+</a>
+
+<br/>
+<br/>
+
+<a href="#"><img src="https://img.shields.io/badge/▲_BACK_TO_TOP-000000?style=for-the-badge&labelColor=00FFFF" alt="back to top"/></a>
 
 </div>
