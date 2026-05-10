@@ -10,20 +10,20 @@ copyright: Copyright &copy; 2026 iamjosephmj. Apache-2.0.
 theme:
   name: material
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: deep orange
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: deep orange
+      primary: deep purple
+      accent: cyan
       toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+        icon: material/gamepad-variant
+        name: Switch to daylight mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: cyan
+      toggle:
+        icon: material/gamepad-variant-outline
+        name: Switch to arcade mode
   features:
     - navigation.tabs
     - navigation.tabs.sticky
