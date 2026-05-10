@@ -14,11 +14,10 @@ import java.nio.ByteOrder
  * Manual (DDI 0487). The unit tests in `src/test` lock the encoder against
  * golden bytes captured from `aarch64-linux-gnu-as`.
  *
- * Coverage matches the SDK_PLAN Phase 3 table — moves, GP/SIMD memory,
- * integer arithmetic, logicals, compare/branch, NEON FP/integer/misc/logical,
- * PAC/BTI, and miscellaneous. Bitmask-immediate encoding (AND/ORR/EOR with
- * immediate operand) and the saturating/crypto subgroups are deferred to a
- * future pass.
+ * Coverage: moves, GP/SIMD memory, integer arithmetic, logicals,
+ * compare/branch, NEON FP/integer/misc/logical, PAC/BTI, and miscellaneous.
+ * Bitmask-immediate encoding (AND/ORR/EOR with immediate operand) and the
+ * saturating/crypto subgroups are deferred to a future pass.
  */
 @Suppress(
     "FunctionName",

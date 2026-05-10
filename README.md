@@ -717,8 +717,7 @@ SVE2 is a V3-class addition.
 
 Kernel encoding happens at runtime (~5 µs per `slim {}` body). For
 sub-µs hot paths a Kotlin compiler plugin that pre-encodes `slim {}`
-blocks at build time is on the roadmap (see `ENCODER_V2_PLAN.md`
-Tier 5).
+blocks at build time is on the roadmap.
 </details>
 
 ---
@@ -728,12 +727,10 @@ Tier 5).
 | Doc | What's in it |
 |---|---|
 | **[`README.md`](README.md)** | This file — overview + quick start. |
-| **[`nativekt/README.md`](nativekt/README.md)** | Module-specific reference, lower-level API surface. |
+| **[Guide (live)](https://iamjosephmj.github.io/Slim/guide/)** | "Write your first NEON kernel" — line-by-line walkthrough, disassembly, runnable benchmark. Start here if you're new to NEON. |
+| **[Cookbook (live)](https://iamjosephmj.github.io/Slim/COOKBOOK/)** | The integration model — closure capture, suspend composition, value extraction, reactive `Flow` pipelines — plus worked recipes (SAXPY, dot product, color filters, blur, threshold, debugging). Long read. |
 | **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | How the runtime works internally: memfd dual-map, EP hijack, hidden-API bypass, encoder, label assembler, kernel cache. |
-| **[Cookbook (live)](https://iamjosephmj.github.io/Slim/COOKBOOK/)** | The integration model — closure capture, suspend composition, value extraction, reactive pipelines — plus worked recipes (SAXPY, dot product, color filters, blur, threshold, debugging). Long read. |
 | **[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)** | Adding encoder helpers, the testing pattern, ART-internals work. |
-| **[`SDK_PLAN.md`](SDK_PLAN.md)** | Original V1 build plan (historical). |
-| **[`ENCODER_V2_PLAN.md`](ENCODER_V2_PLAN.md)** | V2 encoder roadmap with what shipped (Tiers 1–4) and what's deferred (Tier 5). |
 
 ---
 

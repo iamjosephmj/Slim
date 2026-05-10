@@ -227,14 +227,15 @@ with notes is useful as a starting point for someone else.
 Slim/
 ├── README.md                       — top-level (GitHub landing page)
 ├── LICENSE                          — Apache 2.0
-├── SDK_PLAN.md                      — historical V1 build plan
-├── ENCODER_V2_PLAN.md               — V2 roadmap
+├── jitpack.yml                      — JitPack build config
+├── mkdocs.yml                       — docs site config
 ├── docs/
+│   ├── index.md                     — docs site landing
+│   ├── guide/index.md               — teaching guide (your first kernel)
 │   ├── ARCHITECTURE.md              — runtime internals
-│   ├── COOKBOOK.md                  — kernel recipes
+│   ├── COOKBOOK.md                  — integration model + kernel recipes
 │   └── CONTRIBUTING.md              — this file
 ├── nativekt/                        — the library AAR module
-│   ├── README.md                    — module-specific reference
 │   └── src/
 │       ├── main/
 │       │   ├── kotlin/io/simdkt/
