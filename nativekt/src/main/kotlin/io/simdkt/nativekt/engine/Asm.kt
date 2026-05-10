@@ -205,4 +205,7 @@ class Asm {
 
     /** Number of instructions emitted so far (handy for sanity-checking). */
     fun size(): Int = instrs.size
+
+    /** Current byte offset into the instruction stream (= size * 4). */
+    fun currentByteOffset(): Int = instrs.size * 4
 }

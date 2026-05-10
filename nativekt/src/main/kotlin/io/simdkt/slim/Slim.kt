@@ -6,6 +6,7 @@ import io.simdkt.nativekt.KernelTemplate
 import io.simdkt.nativekt.NativeKt
 import io.simdkt.nativekt.engine.Arm64
 import io.simdkt.nativekt.engine.Asm
+import io.simdkt.nativekt.engine.KernelMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -88,6 +89,17 @@ import kotlin.coroutines.CoroutineContext
  *   for advanced cases.
  */
 object Slim {
+
+    /**
+     * When `true`, [SlimScope.emit] captures the call-site source frame for
+     * every instruction emitted. The frames are retrievable via
+     * [SlimScope.toMetadata] and carried in [CachedSlimKernel.metadata].
+     * Has no effect on correctness or dispatch; purely for tooling/debugging.
+     *
+     * Thread-safe (volatile read/write). Defaults to `false`.
+     */
+    @Volatile
+    var debug: Boolean = false
 
     /**
      * One-time runtime initialization.
@@ -436,7 +448,9 @@ private fun compileAndCache(body: SlimScope.() -> Unit): CachedSlimKernel {
     scope.installPrologue()       // x0 = data pointer (4× movz/movk placeholders)
     scope.body()                  // user's NEON code
     scope.installEpilogue()       // ret
-    return SlimCache.getOrCompile(scope.toTemplate())
+    val template = scope.toTemplate()
+    val metadata = scope.toMetadata()
+    return SlimCache.getOrCompile(template, metadata)
 }
 
 // ---------------------------------------------------------------------------
@@ -517,11 +531,38 @@ private fun compileAndCache(body: SlimScope.() -> Unit): CachedSlimKernel {
  * @see io.simdkt.nativekt.engine.Asm.Label — branch target type.
  */
 class SlimScope internal constructor() : Arm64Emitter() {
-    private val asm = Asm()
+    internal val asm = Asm()
     private var dataPtrSlots: IntArray? = null
+    private val capturedFrames = mutableMapOf<Int, io.simdkt.nativekt.engine.SourceFrame>()
 
-    override fun emit(opcode: Int) { asm.add(opcode) }
-    override fun emit(opcodes: List<Int>) { asm.add(opcodes) }
+    override fun emit(opcode: Int) {
+        val offset = asm.currentByteOffset()
+        if (Slim.debug) {
+            SourceFrameCapture.capture()?.let { capturedFrames[offset] = it }
+        }
+        asm.add(opcode)
+    }
+
+    override fun emit(opcodes: List<Int>) {
+        for (opcode in opcodes) {
+            val offset = asm.currentByteOffset()
+            if (Slim.debug) {
+                SourceFrameCapture.capture()?.let { capturedFrames[offset] = it }
+            }
+            asm.add(opcode)
+        }
+    }
+
+    /**
+     * Returns a [KernelMetadata] snapshot of the frames captured during
+     * emission (non-empty only when [Slim.debug] was `true` during emission)
+     * and the label names registered in the backing [Asm].
+     */
+    internal fun toMetadata(): KernelMetadata =
+        KernelMetadata(
+            sourceFrames = capturedFrames.toMap(),
+            labelNames = asm.labelNames,
+        )
 
     /**
      * Create an unbound [Asm.Label]. Use [bind] to attach it to a position
@@ -611,6 +652,8 @@ internal class CachedSlimKernel(
     val handle: KernelHandle,
     /** Serializes runs against the same handle (handle is single-writer). */
     val mutex: Mutex = Mutex(),
+    /** Metadata captured at compile time (source frames + label names). */
+    val metadata: KernelMetadata = KernelMetadata.EMPTY,
 )
 
 /** Wrap ByteArray for use as a HashMap key (content equality + hash). */
@@ -637,13 +680,23 @@ private object SlimCache {
         }
     }
 
+    /**
+     * Returns the cached kernel for [template] if one exists, otherwise
+     * compiles a new one and caches it with [metadata].
+     *
+     * On a cache hit the stored metadata from the *first* compilation is
+     * returned unchanged — the caller's [metadata] is ignored. This is
+     * intentional: the template bytes fully identify the kernel; attaching
+     * fresh metadata on every hit would be misleading since the frames were
+     * captured from a different call site.
+     */
     @Synchronized
-    fun getOrCompile(template: KernelTemplate): CachedSlimKernel {
+    fun getOrCompile(template: KernelTemplate, metadata: KernelMetadata): CachedSlimKernel {
         val key = KernelKey(template.bytes)
         val existing = map[key]
         if (existing != null) return existing
         val handle = NativeKt.compileKernel(template)
-        val cached = CachedSlimKernel(handle)
+        val cached = CachedSlimKernel(handle, metadata = metadata)
         map[key] = cached
         return cached
     }
