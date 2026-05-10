@@ -24,7 +24,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/iamjosephmj/Slim?style=flat-square&color=455A64)](https://github.com/iamjosephmj/Slim/commits/main)
 [![Top language](https://img.shields.io/github/languages/top/iamjosephmj/Slim?style=flat-square&color=7F52FF)](#)
 
-**[Installation](#-installation) · [Quick start](#-quick-start) · [Production readiness](#%EF%B8%8F-production-readiness) · [Architecture](docs/ARCHITECTURE.md) · [Cookbook](docs/COOKBOOK.md)**
+**[Installation](#-installation) · [Quick start](#-quick-start) · [Production readiness](#%EF%B8%8F-production-readiness) · [Architecture](docs/ARCHITECTURE.md) · [Cookbook](https://iamjosephmj.github.io/Slim/COOKBOOK/)**
 
 </div>
 
@@ -347,8 +347,7 @@ println(handle.disassemble())
 - 1000-opcode negative test — random 32-bit ints never throw; unknown
   encodings return `Operand.Unknown` and a `?` mnemonic.
 
-See [`docs/COOKBOOK.md`](docs/COOKBOOK.md#debugging-your-kernel) for the
-debugging recipe and additional examples.
+See the [Cookbook → Debugging your kernel](https://iamjosephmj.github.io/Slim/COOKBOOK/#9-debugging-your-kernel) section for the worked example, and the rest of the cookbook for the full integration story (closure capture, suspend composition, reactive pipelines, value extraction).
 
 ---
 
@@ -421,9 +420,12 @@ threads block on slot acquisition.
 
 ### More recipes
 
-See [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for SAXPY, dot product,
-brightness/contrast, alpha blending, RGB→grayscale, box blur, debugging
-your kernel, and more.
+The [**Cookbook**](https://iamjosephmj.github.io/Slim/COOKBOOK/) is a
+long read explaining the SIMD↔Kotlin integration model — closure
+capture, encode-time evaluation, `suspend` composition, value
+extraction patterns, reactive `Flow` pipelines, conditional dispatch
+— alongside worked recipes for SAXPY, dot product, color filters,
+threshold, blur, and more.
 
 ---
 
@@ -728,7 +730,7 @@ Tier 5).
 | **[`README.md`](README.md)** | This file — overview + quick start. |
 | **[`nativekt/README.md`](nativekt/README.md)** | Module-specific reference, lower-level API surface. |
 | **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | How the runtime works internally: memfd dual-map, EP hijack, hidden-API bypass, encoder, label assembler, kernel cache. |
-| **[`docs/COOKBOOK.md`](docs/COOKBOOK.md)** | Recipes for common kernels: SAXPY, dot product, color filters, blur, threshold, debugging. |
+| **[Cookbook (live)](https://iamjosephmj.github.io/Slim/COOKBOOK/)** | The integration model — closure capture, suspend composition, value extraction, reactive pipelines — plus worked recipes (SAXPY, dot product, color filters, blur, threshold, debugging). Long read. |
 | **[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)** | Adding encoder helpers, the testing pattern, ART-internals work. |
 | **[`SDK_PLAN.md`](SDK_PLAN.md)** | Original V1 build plan (historical). |
 | **[`ENCODER_V2_PLAN.md`](ENCODER_V2_PLAN.md)** | V2 encoder roadmap with what shipped (Tiers 1–4) and what's deferred (Tier 5). |
